@@ -1,0 +1,8 @@
+gunicorn
+Flask
+Flask-Login
+Flask-SQLAlchemy
+SQLAlchemy
+Werkzeug
+python-dotenv
+Flask-Migrate

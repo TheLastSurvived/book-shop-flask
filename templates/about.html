@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}О нас | Книжный магазин "Мир книг"{% endblock %}
+
+{% block content %}
+<!-- Хлебные крошки -->
+<section class="breadcrumb-section">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+                <li class="breadcrumb-item active">О нас</li>
+            </ol>
+        </nav>
+    </div>
+</section>
+
+<!-- Заголовок -->
+<section class="about-header">
+    <div class="container text-center">
+        <h1 class="about-title">О нашем магазине</h1>
+        <p class="about-subtitle">
+            Более 10 лет мы делаем чтение доступным и приятным для каждого
+        </p>
+    </div>
+</section>
+
+<!-- Основной контент -->
+<section class="about-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6">
+                <h2 class="mb-4">Наша история</h2>
+                <p class="lead">
+                    Книжный магазин "Мир книг" был основан в 2015 году с простой
+                    миссией - сделать качественную литературу доступной для всех
+                    жителей нашего города.
+                </p>
+                <p>
+                    Начав с небольшого магазинчика в центре Гродно, мы постепенно
+                    выросли в одну из крупнейших книжных сетей региона. Сегодня у нас
+                    есть как физические магазины, так и современный интернет-магазин,
+                    где можно заказать любую книгу с доставкой на дом.
+                </p>
+                <p>
+                    Мы гордимся тем, что за годы работы помогли тысячам читателей
+                    найти именно те книги, которые изменили их жизнь, подарили новые
+                    знания или просто стали источником удовольствия.
+                </p>
+            </div>
+            <div class="col-lg-6">
+                <img src="{{ url_for('static', filename='img/about.jpg') }}"
+                     alt="Наш магазин" class="img-fluid rounded shadow">
+            </div>
+        </div>
+
+        <!-- Преимущества -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <h2 class="text-center mb-5">Почему выбирают нас</h2>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-book"></i>
+                    </div>
+                    <h4>Широкий ассортимент</h4>
+                    <p>Более 50 000 книг различных жанров и направлений</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-truck"></i>
+                    </div>
+                    <h4>Быстрая доставка</h4>
+                    <p>Доставляем заказы по всему городу в течение 24 часов</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-currency-exchange"></i>
+                    </div>
+                    <h4>Доступные цены</h4>
+                    <p>Регулярные акции и скидки для наших постоянных клиентов</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <section class="stats-section">
+            <div class="container">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <span class="stat-number">10+</span>
+                        <span class="stat-label">Лет на рынке</span>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="stat-number">50,000+</span>
+                        <span class="stat-label">Книг в ассортименте</span>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="stat-number">25,000+</span>
+                        <span class="stat-label">Довольных клиентов</span>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="stat-number">5</span>
+                        <span class="stat-label">Магазинов в городе</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Дополнительная информация -->
+        <section class="info-section" id="delivery">
+            <div class="row">
+                <div class="col-12">
+                    <h2 class="text-center mb-5">Услуги и поддержка</h2>
+                </div>
+
+                <!-- Доставка и оплата -->
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="bi bi-truck"></i>
+                        </div>
+                        <h3>Доставка и оплата</h3>
+                        <p><strong>Способы доставки:</strong></p>
+                        <ul>
+                            <li>Курьерская доставка по городу - 24 часа</li>
+                            <li>Самовывоз из магазинов - бесплатно</li>
+                            <li>Почтовая доставка по Беларуси - 2-3 дня</li>
+                        </ul>
+                        <p><strong>Способы оплаты:</strong></p>
+                        <ul>
+                            <li>Наличными при получении</li>
+                            <li>Банковской картой онлайн</li>
+                            <li>Безналичный расчет для юр. лиц</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Возврат товара -->
+                <div class="col-md-6" id="return">
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="bi bi-arrow-return-left"></i>
+                        </div>
+                        <h3>Возврат товара</h3>
+                        <p>
+                            Мы принимаем возврат товара в течение 14 дней с момента
+                            покупки при соблюдении условий:
+                        </p>
+                        <ul>
+                            <li>Сохранен товарный вид книги</li>
+                            <li>Отсутствуют повреждения и следы использования</li>
+                            <li>Имеется оригинальная упаковка</li>
+                            <li>Сохранен чек или другой документ о покупке</li>
+                        </ul>
+                        <p>
+                            Для возврата обратитесь в любой наш магазин или свяжитесь с
+                            службой поддержки.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Контакты -->
+                <div class="col-md-6" id="contacts">
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="bi bi-telephone"></i>
+                        </div>
+                        <h3>Контакты</h3>
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="bi bi-geo-alt"></i>
+                            </div>
+                            <div>
+                                <strong>Главный офис:</strong><br>
+                                г. Гродно, ул. Книжная, д. 10
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="bi bi-telephone"></i>
+                            </div>
+                            <div>
+                                <strong>Телефон:</strong><br>
+                                +375 (25) 456-78-90
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="bi bi-envelope"></i>
+                            </div>
+                            <div>
+                                <strong>Email:</strong><br>
+                                info@mir-knig.ru
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="bi bi-clock"></i>
+                            </div>
+                            <div>
+                                <strong>Время работы:</strong><br>
+                                Пн-Пт: 9:00-21:00<br>
+                                Сб-Вс: 10:00-20:00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Частые вопросы -->
+                <div class="col-md-6" id="faq">
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="bi bi-question-circle"></i>
+                        </div>
+                        <h3>Частые вопросы</h3>
+                        <div class="accordion" id="faqAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                        Как сделать заказ?
+                                    </button>
+                                </h2>
+                                <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Выберите книги в каталоге, добавьте их в корзину и
+                                        перейдите к оформлению заказа. Заполните данные для
+                                        доставки и выберите способ оплаты.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                        Есть ли доставка в другие города?
+                                    </button>
+                                </h2>
+                                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Да, мы осуществляем доставку по всей Беларуси через
+                                        почтовые службы. Срок доставки - 2-3 рабочих дня.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                        Можно ли забронировать книгу?
+                                    </button>
+                                </h2>
+                                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Да, вы можете забронировать книгу онлайн и забрать её в
+                                        любом нашем магазине в течение 3 дней.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}

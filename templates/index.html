@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Главная | Книжный магазин "Мир книг"{% endblock %}
+
+{% block content %}
+<!-- Герой-слайдер -->
+<div id="heroCarousel" class="carousel slide hero-slider" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
+    </div>
+    <div class="carousel-inner">
+        <div class="carousel-item active">
+            <div class="carousel-caption">
+                <h1 class="fade-in-up">Откройте мир книг</h1>
+                <p class="fade-in-up">Более 50 000 книг различных жанров. Найдите свою следующую любимую книгу в нашем магазине.</p>
+                <a href="{{ url_for('catalog') }}" class="btn btn-hero btn-lg fade-in-up">Смотреть каталог</a>
+            </div>
+        </div>
+        <div class="carousel-item">
+            <div class="carousel-caption">
+                <h1 class="fade-in-up">Новинки этого месяца</h1>
+                <p class="fade-in-up">Самые ожидаемые книги уже в продаже. Успейте приобрести первыми!</p>
+                <a href="{{ url_for('catalog', section='new') }}" class="btn btn-hero btn-lg fade-in-up">Смотреть новинки</a>
+            </div>
+        </div>
+        <div class="carousel-item">
+            <div class="carousel-caption">
+                <h1 class="fade-in-up">Скидки до 50%</h1>
+                <p class="fade-in-up">Только до конца месяца специальные предложения на классику и бестселлеры.</p>
+                <a href="{{ url_for('catalog', section='sale') }}" class="btn btn-hero btn-lg fade-in-up">Смотреть акции</a>
+            </div>
+        </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Предыдущий</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Следующий</span>
+    </button>
+</div>
+
+<!-- Популярные категории -->
+<section class="section-light">
+    <div class="container">
+        <h2 class="section-title">Популярные категории</h2>
+        <div class="row g-4">
+            {% for category in categories %}
+            <div class="col-md-6 col-lg-3">
+                <div class="category-card">
+                    <img src="{{ url_for('static', filename='img/' + category.image) }}" 
+                         class="card-img-top" alt="{{ category.name }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ category.name }}</h5>
+                        <p class="card-text">Книги в этой категории</p>
+                        <a href="{{ url_for('catalog', category=category.slug) }}" class="btn btn-outline-primary">Смотреть</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Новинки -->
+<section>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title mb-0">Новинки</h2>
+            <a href="{{ url_for('catalog', section='new') }}" class="btn btn-outline-primary">
+                Все новинки <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="row g-4">
+            {% for book in new_books %}
+            <div class="col-md-6 col-lg-3">
+                <div class="book-card">
+                    <div class="book-cover">
+                        <img src="{{ url_for('static', filename='img/books/' + book.image) }}" alt="{{ book.title }}">
+                        {% if book.is_new %}
+                            <span class="badge bg-success position-absolute top-0 start-0 m-2">Новинка</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="rating mb-2">
+                            {% for i in range(5) %}
+                                {% if i < book.rating|int %}
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                {% elif book.rating - i > 0 %}
+                                    <i class="bi bi-star-half text-warning"></i>
+                                {% else %}
+                                    <i class="bi bi-star text-warning"></i>
+                                {% endif %}
+                            {% endfor %}
+                            <span class="text-muted ms-1">({{ book.reviews_count }})</span>
+                        </div>
+                        <h5 class="card-title">{{ book.title }}</h5>
+                        <p class="author text-muted">{{ book.author }}</p>
+                        <p class="card-text text-truncate-2">{{ book.description[:80] }}...</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <span class="price">{{ book.price }} руб.</span>
+                                {% if book.old_price %}
+                                    <small class="text-muted d-block"><s>{{ book.old_price }} руб.</s></small>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('book_details', book_id=book.id) }}" class="btn btn-book">Просмотреть</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Бестселлеры -->
+<section class="section-light">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title mb-0">Бестселлеры</h2>
+            <a href="{{ url_for('catalog', section='bestseller') }}" class="btn btn-outline-primary">
+                Все бестселлеры <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="row g-4">
+            {% for book in bestsellers %}
+            <div class="col-lg-3 col-md-6">
+                <div class="bestseller-card">
+                    <div class="bestseller-badge">
+                        <i class="bi bi-trophy-fill me-1"></i> №{{ loop.index }}
+                    </div>
+                    <div class="book-cover">
+                        <img src="{{ url_for('static', filename='img/books/' + book.image) }}" alt="{{ book.title }}">
+                    </div>
+                    <div class="card-body">
+                        <div class="rating mb-2">
+                            {% for i in range(5) %}
+                                {% if i < book.rating|int %}
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                {% elif book.rating - i > 0 %}
+                                    <i class="bi bi-star-half text-warning"></i>
+                                {% else %}
+                                    <i class="bi bi-star text-warning"></i>
+                                {% endif %}
+                            {% endfor %}
+                            <span class="text-muted ms-1">({{ book.reviews_count }})</span>
+                        </div>
+                        <h5 class="card-title">{{ book.title }}</h5>
+                        <p class="author text-muted">{{ book.author }}</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="price">{{ book.price }} руб.</span>
+                            <a href="{{ url_for('book_details', book_id=book.id) }}" class="btn btn-book">Просмотреть</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Преимущества -->
+<section>
+    <div class="container">
+        <h2 class="section-title">Почему выбирают нас</h2>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-truck"></i>
+                    </div>
+                    <h5>Быстрая доставка</h5>
+                    <p>Доставляем заказы за 1-3 дня</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5>Гарантия качества</h5>
+                    <p>Все книги от проверенных издательств</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-percent"></i>
+                    </div>
+                    <h5>Выгодные цены</h5>
+                    <p>Регулярные акции и скидки</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <h5>Поддержка 24/7</h5>
+                    <p>Всегда готовы помочь</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA секция -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content text-center text-white">
+            <h2 class="cta-title mb-4">Начните своё путешествие в мир книг сегодня!</h2>
+            <p class="cta-text mb-4">Присоединяйтесь к тысячам читателей, которые уже открыли для себя магию чтения.</p>
+            <div class="cta-buttons">
+                <a href="{{ url_for('catalog') }}" class="btn btn-light btn-lg me-3">
+                    <i class="bi bi-cart-check me-2"></i>Сделать заказ
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

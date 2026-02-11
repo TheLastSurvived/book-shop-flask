@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация | Книжный магазин "Мир книг"{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <h2><i class="bi bi-person-plus me-2"></i>Создать аккаунт</h2>
+                        <p class="text-muted">Заполните форму для регистрации</p>
+                    </div>
+                    <div class="auth-body">
+                        <form method="post" action="{{ url_for('register') }}" class="auth-form">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="firstName" class="form-label">Имя</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                            <input type="text" class="form-control" id="firstName" name="first_name" 
+                                                   placeholder="Введите имя" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="lastName" class="form-label">Фамилия</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                            <input type="text" class="form-control" id="lastName" name="last_name" 
+                                                   placeholder="Введите фамилию" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="regEmail" class="form-label">Email адрес</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" class="form-control" id="regEmail" name="email" 
+                                           placeholder="Введите ваш email" required>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="regPassword" class="form-label">Пароль</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                            <input type="password" class="form-control" id="regPassword" name="password" 
+                                                   placeholder="Создайте пароль" required>
+                                        </div>
+                                        <small class="text-muted">Минимум 6 символов</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="confirmPassword" class="form-label">Подтвердите пароль</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                            <input type="password" class="form-control" id="confirmPassword" name="confirm_password" 
+                                                   placeholder="Повторите пароль" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-check mb-4">
+                                <input class="form-check-input" type="checkbox" id="agree" required>
+                                <label class="form-check-label" for="agree">
+                                    Я согласен с <a href="#" class="text-decoration-none">условиями использования</a> 
+                                    и <a href="#" class="text-decoration-none">политикой конфиденциальности</a>
+                                </label>
+                            </div>
+
+                            <button type="submit" class="btn auth-btn w-100">
+                                <i class="bi bi-check-circle me-2"></i>Зарегистрироваться
+                            </button>
+
+                            <div class="auth-links text-center mt-4">
+                                <p class="mb-0">Уже есть аккаунт? 
+                                    <a href="{{ url_for('login') }}" class="text-decoration-none fw-bold">
+                                        Войдите
+                                    </a>
+                                </p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

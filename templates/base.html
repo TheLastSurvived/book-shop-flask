@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Книжный магазин "Мир книг"{% endblock %}</title>
+    
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-book-half me-2"></i>МИР КНИГ
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" 
+                           href="{{ url_for('index') }}">Главная</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'catalog' %}active{% endif %}" 
+                           href="{{ url_for('catalog') }}">Каталог</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('catalog', section='new') }}">Новинки</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('catalog', section='bestseller') }}">Бестселлеры</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('catalog', section='sale') }}">Акции</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'about' %}active{% endif %}" 
+                           href="{{ url_for('about') }}">О нас</a>
+                    </li>
+                </ul>
+                <form class="d-flex me-3" action="{{ url_for('catalog') }}" method="get">
+                    <div class="input-group">
+                        <input class="form-control" type="search" name="search" placeholder="Поиск книг" 
+                               value="{{ request.args.get('search', '') }}">
+                        <button class="btn btn-outline-light" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'cart' %}active{% endif %}" 
+                           href="{{ url_for('cart') }}">
+                            <i class="bi bi-cart3 me-1"></i> Корзина
+                            {% if cart_count > 0 %}
+                                <span class="badge bg-danger ms-1">{{ cart_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    {% if session.user_id %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'profile' %}active{% endif %}" 
+                           href="{{ url_for('profile') }}">
+                            <i class="bi bi-person-circle me-1"></i> {{ session.user_name }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="bi bi-box-arrow-right me-1"></i> Выйти
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}" 
+                           href="{{ url_for('login') }}">
+                            <i class="bi bi-person me-1"></i> Войти
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    {% block content %}{% endblock %}
+
+    <!-- Футер -->
+    <footer>
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="footer-links">
+                        <h5>Книжный магазин "Мир книг"</h5>
+                        <p>Мы предлагаем широкий выбор книг различных жанров для всех возрастов. 
+                           Наша миссия - делать чтение доступным и приятным для каждого.</p>
+                        <div class="social-links mt-4">
+                            <a href="#"><i class="bi bi-facebook"></i></a>
+                            <a href="#"><i class="bi bi-instagram"></i></a>
+                            <a href="#"><i class="bi bi-twitter"></i></a>
+                            <a href="#"><i class="bi bi-youtube"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <div class="footer-links">
+                        <h5>Магазин</h5>
+                        <ul>
+                            <li><a href="{{ url_for('index') }}">Главная</a></li>
+                            <li><a href="{{ url_for('catalog') }}">Каталог</a></li>
+                            <li><a href="{{ url_for('catalog', section='new') }}">Новинки</a></li>
+                            <li><a href="{{ url_for('catalog', section='bestseller') }}">Бестселлеры</a></li>
+                            <li><a href="{{ url_for('catalog', section='sale') }}">Акции</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="footer-links">
+                        <h5>Помощь</h5>
+                        <ul>
+                            <li><a href="{{ url_for('about') }}#delivery">Доставка и оплата</a></li>
+                            <li><a href="{{ url_for('about') }}#return">Возврат товара</a></li>
+                            <li><a href="{{ url_for('about') }}#faq">Частые вопросы</a></li>
+                            <li><a href="{{ url_for('about') }}#contacts">Контакты</a></li>
+                            <li><a href="{{ url_for('about') }}">О нас</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="footer-links">
+                        <h5>Контакты</h5>
+                        <ul>
+                            <li><i class="bi bi-geo-alt me-2"></i> г. Гродно, ул. Книжная, д. 10</li>
+                            <li><i class="bi bi-telephone me-2"></i> +375 (25) 456-78-90</li>
+                            <li><i class="bi bi-envelope me-2"></i> info@mir-knig.ru</li>
+                        </ul>
+                        <h5 class="mt-4">Подписка на новости</h5>
+                        <div class="input-group mt-3">
+                            <input type="email" class="form-control" placeholder="Ваш email">
+                            <button class="btn btn-primary" type="button">
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; {{ current_year }} Книжный магазин "Мир книг". Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050; max-width: 380px; width: 100%;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-dismissible fade show mb-3 border"
+                 role="alert"
+                 style="background-color: white;
+                        border-left: 8px solid 
+                        {% if category == 'success' %}#28a745;
+                        {% elif category == 'danger' %}#dc3545;
+                        {% elif category == 'warning' %}#ffc107;
+                        {% elif category == 'info' %}#17a2b8;
+                        {% else %}#6c757d{% endif %};
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+                        border-radius: 8px;
+                        border-top: 1px solid #e9ecef;
+                        border-right: 1px solid #e9ecef;
+                        border-bottom: 1px solid #e9ecef;">
+                
+                <div class="d-flex align-items-start">
+                    <!-- Иконка -->
+                    <div class="me-3 fs-4">
+                        {% if category == 'success' %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                        {% elif category == 'danger' %}
+                            <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                        {% elif category == 'warning' %}
+                            <i class="bi bi-exclamation-circle-fill text-warning"></i>
+                        {% elif category == 'info' %}
+                            <i class="bi bi-info-circle-fill text-info"></i>
+                        {% else %}
+                            <i class="bi bi-bell-fill text-secondary"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Текст сообщения -->
+                    <div class="flex-grow-1">
+                        <strong class="d-block mb-1" style="color: #2c3e50; font-size: 1rem;">
+                            {% if category == 'success' %}
+                                Успешно!
+                            {% elif category == 'danger' %}
+                                Ошибка!
+                            {% elif category == 'warning' %}
+                                Внимание!
+                            {% elif category == 'info' %}
+                                Информация!
+                            {% else %}
+                                Сообщение!
+                            {% endif %}
+                        </strong>
+                        <p class="mb-0" style="color: #495057; font-size: 0.95rem;">{{ message }}</p>
+                    </div>
+                    
+                    <!-- Кнопка закрытия -->
+                    <button type="button" class="btn-close ms-3" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block scripts %}
+     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            var alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                var bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    });
+    </script>
+    {% endblock %}
+</body>
+</html>
