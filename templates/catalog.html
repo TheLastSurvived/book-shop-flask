@@ -27,10 +27,10 @@
                         Бестселлеры
                     {% elif request.args.get('section') == 'sale' %}
                         Акции и скидки
-                    {% elif request.args.get('category') %}
+                    {% elif request.args.getlist('category') %}
                         {% for cat in categories %}
-                            {% if cat.slug == request.args.get('category') %}
-                                {{ cat.name }}
+                            {% if cat.slug in request.args.getlist('category') %}
+                                {{ cat.name }}{% if not loop.last %}, {% endif %}
                             {% endif %}
                         {% endfor %}
                     {% elif request.args.get('search') %}
@@ -41,7 +41,10 @@
                 </h1>
                 <p class="catalog-subtitle">
                     {% if books %}
-                        Найдено {{ books|length }} книг
+                        Найдено {{ pagination.total }} книг
+                        {% if filters_applied %}
+                            <span class="text-muted">(с учетом фильтров)</span>
+                        {% endif %}
                     {% else %}
                         Книги не найдены
                     {% endif %}
@@ -60,7 +63,7 @@
                 <div class="filter-sidebar">
                     <div class="filter-header">
                         <h5>Фильтры</h5>
-                        <a href="{{ url_for('catalog') }}" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+                        <a href="{{ url_for('catalog') }}" class="btn btn-sm btn-outline-secondary">Сбросить все</a>
                     </div>
 
                     <!-- Фильтр по категориям -->
@@ -69,10 +72,11 @@
                         <div class="filter-options">
                             {% for category in categories %}
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" 
+                                {% set cat_checked = category.slug in selected_categories %}
+                                <input class="form-check-input category-filter" type="checkbox" 
+                                       value="{{ category.slug }}"
                                        id="cat{{ category.id }}"
-                                       {% if request.args.get('category') == category.slug %}checked{% endif %}
-                                       onchange="window.location.href='{{ url_for('catalog', category=category.slug) }}'">
+                                       {% if cat_checked %}checked{% endif %}>
                                 <label class="form-check-label" for="cat{{ category.id }}">
                                     {{ category.name }}
                                     <span class="text-muted">({{ category_counts[category.id] }})</span>
@@ -87,30 +91,35 @@
                         <h6>Разделы</h6>
                         <div class="filter-options">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" 
-                                       id="section-new"
-                                       {% if request.args.get('section') == 'new' %}checked{% endif %}
-                                       onchange="window.location.href='{{ url_for('catalog', section='new') }}'">
+                                <input class="form-check-input section-filter" type="radio" 
+                                       name="section_filter" id="section-none"
+                                       value="" {% if not current_section %}checked{% endif %}>
+                                <label class="form-check-label" for="section-none">
+                                    Все разделы
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input section-filter" type="radio" 
+                                       name="section_filter" id="section-new"
+                                       value="new" {% if current_section == 'new' %}checked{% endif %}>
                                 <label class="form-check-label" for="section-new">
                                     <span class="badge bg-success me-2">Новинки</span>
                                     Новые поступления
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" 
-                                       id="section-bestseller"
-                                       {% if request.args.get('section') == 'bestseller' %}checked{% endif %}
-                                       onchange="window.location.href='{{ url_for('catalog', section='bestseller') }}'">
+                                <input class="form-check-input section-filter" type="radio" 
+                                       name="section_filter" id="section-bestseller"
+                                       value="bestseller" {% if current_section == 'bestseller' %}checked{% endif %}>
                                 <label class="form-check-label" for="section-bestseller">
                                     <span class="badge bg-warning me-2">Бестселлеры</span>
                                     Популярные книги
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" 
-                                       id="section-sale"
-                                       {% if request.args.get('section') == 'sale' %}checked{% endif %}
-                                       onchange="window.location.href='{{ url_for('catalog', section='sale') }}'">
+                                <input class="form-check-input section-filter" type="radio" 
+                                       name="section_filter" id="section-sale"
+                                       value="sale" {% if current_section == 'sale' %}checked{% endif %}>
                                 <label class="form-check-label" for="section-sale">
                                     <span class="badge bg-danger me-2">Акции</span>
                                     Скидки и спецпредложения
@@ -120,11 +129,26 @@
                     </div>
 
                     <!-- Фильтр по цене -->
-                    <form method="get" action="{{ url_for('catalog') }}">
-                        <input type="hidden" name="category" value="{{ request.args.get('category', '') }}">
-                        <input type="hidden" name="section" value="{{ request.args.get('section', '') }}">
-                        <input type="hidden" name="sort" value="{{ request.args.get('sort', 'popular') }}">
+                    <form id="filter-form" method="get" action="{{ url_for('catalog') }}">
+                        <!-- Скрытые поля для множественных категорий -->
+                        <div id="category-fields">
+                            {% for slug in selected_categories %}
+                            <input type="hidden" name="category" value="{{ slug }}">
+                            {% endfor %}
+                        </div>
                         
+                        <!-- Скрытое поле для раздела -->
+                        <input type="hidden" name="section" id="section-input" value="{{ current_section or '' }}">
+                        
+                        <!-- Скрытое поле для сортировки -->
+                        <input type="hidden" name="sort" id="sort-input" value="{{ current_sort }}">
+                        
+                        <!-- Поле поиска -->
+                        {% if search %}
+                        <input type="hidden" name="search" value="{{ search }}">
+                        {% endif %}
+                        
+                        <!-- Поля для фильтрации по цене -->
                         <div class="filter-group">
                             <h6>Цена, руб.</h6>
                             <div class="price-filter">
@@ -143,7 +167,13 @@
                             </div>
                         </div>
 
+                        <!-- Кнопка применения фильтров -->
                         <button type="submit" class="btn btn-primary w-100 mt-3">Применить фильтры</button>
+                        
+                        <!-- Кнопка сброса -->
+                        {% if filters_applied %}
+                        <a href="{{ url_for('catalog') }}" class="btn btn-outline-secondary w-100 mt-2">Сбросить фильтры</a>
+                        {% endif %}
                     </form>
                 </div>
             </div>
@@ -156,91 +186,166 @@
                         <div class="col-md-6">
                             <div class="sorting-options d-flex align-items-center">
                                 <label class="me-2">Сортировка:</label>
-                                <select class="form-select form-select-sm" onchange="window.location.href=this.value">
-                                    <option value="{{ url_for('catalog', category=request.args.get('category'), section=request.args.get('section'), search=request.args.get('search'), min_price=min_price, max_price=max_price, sort='popular') }}"
-                                            {% if current_sort == 'popular' %}selected{% endif %}>
+                                <select class="form-select form-select-sm" id="sort-select">
+                                    <option value="popular" {% if current_sort == 'popular' %}selected{% endif %}>
                                         По популярности
                                     </option>
-                                    <option value="{{ url_for('catalog', category=request.args.get('category'), section=request.args.get('section'), search=request.args.get('search'), min_price=min_price, max_price=max_price, sort='price_asc') }}"
-                                            {% if current_sort == 'price_asc' %}selected{% endif %}>
+                                    <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>
                                         По цене (сначала дешевые)
                                     </option>
-                                    <option value="{{ url_for('catalog', category=request.args.get('category'), section=request.args.get('section'), search=request.args.get('search'), min_price=min_price, max_price=max_price, sort='price_desc') }}"
-                                            {% if current_sort == 'price_desc' %}selected{% endif %}>
+                                    <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>
                                         По цене (сначала дорогие)
                                     </option>
-                                    <option value="{{ url_for('catalog', category=request.args.get('category'), section=request.args.get('section'), search=request.args.get('search'), min_price=min_price, max_price=max_price, sort='newest') }}"
-                                            {% if current_sort == 'newest' %}selected{% endif %}>
+                                    <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>
                                         По новизне
                                     </option>
-                                    <option value="{{ url_for('catalog', category=request.args.get('category'), section=request.args.get('section'), search=request.args.get('search'), min_price=min_price, max_price=max_price, sort='rating') }}"
-                                            {% if current_sort == 'rating' %}selected{% endif %}>
+                                    <option value="rating" {% if current_sort == 'rating' %}selected{% endif %}>
                                         По рейтингу
                                     </option>
                                 </select>
                             </div>
                         </div>
+                        <div class="col-md-6 text-end">
+                            <span class="text-muted">
+                                Показано {{ pagination.first }} - {{ pagination.last }} из {{ pagination.total }}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-         
-              <!-- Сетка книг -->
-<div class="books-grid">
-    {% for book in books %}
-    <div class="book-card catalog-view">
-        <div class="book-cover">
-            <img src="{{ url_for('static', filename='img/books/' + book.image) }}" alt="{{ book.title }}">
-            {% if book.is_new %}
-                <span class="badge bg-success position-absolute top-0 start-0 m-2">Новинка</span>
-            {% elif book.is_bestseller %}
-                <span class="badge bg-warning position-absolute top-0 start-0 m-2">Бестселлер</span>
-            {% elif book.is_sale %}
-                <span class="badge bg-danger position-absolute top-0 start-0 m-2">-{{ book.sale_percent }}%</span>
-            {% endif %}
-        </div>
-        <div class="card-body">
-            <div class="rating mb-2">
-                {% for i in range(5) %}
-                    {% if i < book.rating|int %}
-                        <i class="bi bi-star-fill text-warning"></i>
-                    {% elif book.rating - i > 0 %}
-                        <i class="bi bi-star-half text-warning"></i>
-                    {% else %}
-                        <i class="bi bi-star text-warning"></i>
-                    {% endif %}
-                {% endfor %}
-                <span class="text-muted ms-1">({{ book.reviews_count }})</span>
-            </div>
-            <h5 class="card-title">{{ book.title }}</h5>
-            <p class="author text-muted">{{ book.author }}</p>
-            <p class="card-text text-truncate-2">{{ book.description[:80] }}...</p>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <div>
-                    <span class="price">{{ book.price }} руб.</span>
-                    {% if book.old_price %}
-                        <small class="text-muted d-block"><s>{{ book.old_price }} руб.</s></small>
-                    {% endif %}
+                <!-- Сетка книг -->
+                <div class="books-grid">
+                    {% for book in books %}
+                    <div class="book-card catalog-view">
+                        <div class="book-cover">
+                            <img src="{{ url_for('static', filename='img/books/' + book.image) }}" alt="{{ book.title }}">
+                            {% if book.is_new %}
+                                <span class="badge bg-success position-absolute top-0 start-0 m-2">Новинка</span>
+                            {% elif book.is_bestseller %}
+                                <span class="badge bg-warning position-absolute top-0 start-0 m-2">Бестселлер</span>
+                            {% elif book.is_sale %}
+                                <span class="badge bg-danger position-absolute top-0 start-0 m-2">-{{ book.sale_percent }}%</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            <div class="rating mb-2">
+                                {% for i in range(5) %}
+                                    {% if i < book.rating|int %}
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                    {% elif book.rating - i > 0 %}
+                                        <i class="bi bi-star-half text-warning"></i>
+                                    {% else %}
+                                        <i class="bi bi-star text-warning"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="text-muted ms-1">({{ book.reviews_count }})</span>
+                            </div>
+                            <h5 class="card-title">{{ book.title }}</h5>
+                            <p class="author text-muted">{{ book.author }}</p>
+                            <p class="card-text text-truncate-2">{{ book.description[:80] }}...</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div>
+                                    <span class="price">{{ book.price }} руб.</span>
+                                    {% if book.old_price %}
+                                        <small class="text-muted d-block"><s>{{ book.old_price }} руб.</s></small>
+                                    {% endif %}
+                                </div>
+                                <a href="{{ url_for('book_details', book_id=book.id) }}" class="btn btn-book">Просмотреть</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                <a href="{{ url_for('book_details', book_id=book.id) }}" class="btn btn-book">Просмотреть</a>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
 
-<!-- Уведомление об отсутствии книг - отдельно от сетки -->
-{% if not books %}
-<div class="row">
-    <div class="col-12 text-center py-5">
-        <i class="bi bi-emoji-frown" style="font-size: 3rem;"></i>
-        <h3 class="mt-3">Книги не найдены</h3>
-        <p class="text-muted">Попробуйте изменить параметры поиска или фильтры</p>
-        <a href="{{ url_for('catalog') }}" class="btn btn-primary mt-3">Сбросить фильтры</a>
-    </div>
-</div>
-{% endif %}
+                <!-- Пагинация -->
+                {% if pagination.pages > 1 %}
+                <nav aria-label="Page navigation" class="mt-5">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('catalog', page=pagination.prev_num, **url_params) if pagination.has_prev else '#' }}">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        
+                        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if page_num %}
+                                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('catalog', page=page_num, **url_params) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('catalog', page=pagination.next_num, **url_params) if pagination.has_next else '#' }}">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                {% endif %}
+
+                <!-- Уведомление об отсутствии книг -->
+                {% if not books %}
+                <div class="row">
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-emoji-frown" style="font-size: 3rem;"></i>
+                        <h3 class="mt-3">Книги не найдены</h3>
+                        <p class="text-muted">Попробуйте изменить параметры поиска или фильтры</p>
+                        <a href="{{ url_for('catalog') }}" class="btn btn-primary mt-3">Сбросить фильтры</a>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </section>
+
+<!-- JavaScript для обработки фильтров -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filter-form');
+    const sortSelect = document.getElementById('sort-select');
+    const sectionInput = document.getElementById('section-input');
+    const categoryFields = document.getElementById('category-fields');
+    
+    // Обработка изменения сортировки
+    sortSelect.addEventListener('change', function() {
+        document.getElementById('sort-input').value = this.value;
+        filterForm.submit();
+    });
+    
+    // Обработка изменения раздела
+    document.querySelectorAll('.section-filter').forEach(radio => {
+        radio.addEventListener('change', function() {
+            sectionInput.value = this.value;
+            filterForm.submit();
+        });
+    });
+    
+    // Обработка изменения категорий (множественный выбор)
+    document.querySelectorAll('.category-filter').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            // Очищаем существующие поля категорий
+            categoryFields.innerHTML = '';
+            
+            // Добавляем поля для выбранных категорий
+            document.querySelectorAll('.category-filter:checked').forEach(cb => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'category';
+                input.value = cb.value;
+                categoryFields.appendChild(input);
+            });
+            
+            filterForm.submit();
+        });
+    });
+});
+</script>
 {% endblock %}

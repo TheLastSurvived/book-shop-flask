@@ -39,31 +39,44 @@ def index():
 @app.route('/catalog')
 def catalog():
     # Получаем список выбранных категорий (может быть несколько)
-    category_slugs = request.args.getlist('category')  # Изменено с get на getlist
+    category_slugs = request.args.getlist('category')
     section = request.args.get('section')
     sort = request.args.get('sort', 'popular')
     min_price = request.args.get('min_price', 0, type=int)
     max_price = request.args.get('max_price', 200, type=int)
     search = request.args.get('search', '')
     
+    # Параметры пагинации
+    page = request.args.get('page', 1, type=int)
+    per_page = 9  # Количество книг на странице
+    
     query = Book.query
     
+    # ФИЛЬТРЫ - применяем только если они есть
+    filters_applied = False
+    
     # Фильтр по категориям (несколько)
-    if category_slugs:
+    if category_slugs and category_slugs[0]:  # Проверяем, что не пустой список
         categories = Category.query.filter(Category.slug.in_(category_slugs)).all()
-        category_ids = [cat.id for cat in categories]
-        query = query.filter(Book.category_id.in_(category_ids))
+        if categories:  # Проверяем, что нашли категории
+            category_ids = [cat.id for cat in categories]
+            query = query.filter(Book.category_id.in_(category_ids))
+            filters_applied = True
     
     # Фильтр по специальным разделам
-    if section == 'new':
-        query = query.filter_by(is_new=True)
-    elif section == 'bestseller':
-        query = query.filter_by(is_bestseller=True)
-    elif section == 'sale':
-        query = query.filter_by(is_sale=True)
+    if section:
+        if section == 'new':
+            query = query.filter_by(is_new=True)
+        elif section == 'bestseller':
+            query = query.filter_by(is_bestseller=True)
+        elif section == 'sale':
+            query = query.filter_by(is_sale=True)
+        filters_applied = True
     
-    # Фильтр по цене
-    query = query.filter(Book.price >= min_price, Book.price <= max_price)
+    # Фильтр по цене (только если изменены значения по умолчанию)
+    if min_price != 0 or max_price != 200:
+        query = query.filter(Book.price >= min_price, Book.price <= max_price)
+        filters_applied = True
     
     # Поиск
     if search:
@@ -73,6 +86,7 @@ def catalog():
                 Book.author.ilike(f'%{search}%')
             )
         )
+        filters_applied = True
     
     # Сортировка
     if sort == 'price_asc':
@@ -86,7 +100,10 @@ def catalog():
     else:  # популярность
         query = query.order_by(Book.reviews_count.desc())
     
-    books = query.all()
+    # Пагинация
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    books = pagination.items
+    
     categories = Category.query.all()
     
     # Получаем статистику по категориям для фильтра
@@ -95,16 +112,29 @@ def catalog():
         count = Book.query.filter_by(category_id=cat.id).count()
         category_counts[cat.id] = count
     
+    # Создаем словарь для хранения параметров URL
+    url_params = {
+        'category': category_slugs,
+        'section': section,
+        'sort': sort,
+        'min_price': min_price,
+        'max_price': max_price,
+        'search': search
+    }
+    
     return render_template('catalog.html',
                          books=books,
+                         pagination=pagination,
                          categories=categories,
                          category_counts=category_counts,
-                         selected_categories=category_slugs,  # Передаем список выбранных
+                         selected_categories=category_slugs,
                          current_section=section,
                          current_sort=sort,
                          min_price=min_price,
                          max_price=max_price,
-                         search=search)
+                         search=search,
+                         url_params=url_params,
+                         filters_applied=filters_applied)
 
 # Детальная страница книги
 @app.route('/book/<int:book_id>')
