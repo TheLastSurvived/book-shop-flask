@@ -13,6 +13,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
     phone = db.Column(db.String(20))
+    is_admin = db.Column(db.Boolean, default=False)  # Добавленное поле
     created_at = db.Column(db.DateTime, default=datetime.now)
     
     orders = db.relationship('Order', backref='user', lazy=True)

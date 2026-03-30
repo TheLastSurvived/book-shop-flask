@@ -1959,3 +1959,40 @@ footer {
         gap: 10px;
     }
 }
+
+
+
+/* Стили для админки */
+.admin-sidebar {
+ 
+    position: sticky;
+    top: 100px;
+}
+
+.admin-sidebar .list-group-item {
+    border: none;
+    border-radius: 10px;
+    margin-bottom: 5px;
+    transition: all 0.3s;
+}
+
+.admin-sidebar .list-group-item:hover {
+    background-color: #e9ecef;
+    transform: translateX(5px);
+}
+
+.admin-sidebar .list-group-item.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+}
+
+.admin-sidebar .list-group-item i {
+    width: 24px;
+}
+
+/* Таблицы в админке */
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}

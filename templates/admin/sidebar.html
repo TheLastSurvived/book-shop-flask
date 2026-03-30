@@ -1,0 +1,29 @@
+<!-- Боковая панель админки -->
+<div class="admin-sidebar">
+    <div class="list-group">
+        <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2 me-2"></i>Дашборд
+        </a>
+        <a href="{{ url_for('admin.books') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.books' %}active{% endif %}">
+            <i class="bi bi-book me-2"></i>Книги
+        </a>
+        <a href="{{ url_for('admin.categories') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.categories' %}active{% endif %}">
+            <i class="bi bi-tags me-2"></i>Категории
+        </a>
+        <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.orders' %}active{% endif %}">
+            <i class="bi bi-cart me-2"></i>Заказы
+        </a>
+        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.users' %}active{% endif %}">
+            <i class="bi bi-people me-2"></i>Пользователи
+        </a>
+        <a href="{{ url_for('admin.admins') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.admins' %}active{% endif %}">
+            <i class="bi bi-shield-lock me-2"></i>Администраторы
+        </a>
+        <a href="{{ url_for('admin.reviews') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.reviews' %}active{% endif %}">
+            <i class="bi bi-star me-2"></i>Отзывы
+        </a>
+        <a href="{{ url_for('admin.export_orders') }}" class="list-group-item list-group-item-action">
+            <i class="bi bi-download me-2"></i>Экспорт заказов
+        </a>
+    </div>
+</div>

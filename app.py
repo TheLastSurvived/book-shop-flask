@@ -4,10 +4,12 @@ from models import db, User, Category, Book, Review, Order, OrderItem, Wishlist
 import random
 import string
 from datetime import datetime
+from admin import admin_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
+app.register_blueprint(admin_bp)
 
 # Контекстный процессор для передачи данных во все шаблоны
 @app.context_processor
@@ -412,6 +414,7 @@ def login():
         if user and user.check_password(password):
             session['user_id'] = user.id
             session['user_name'] = f"{user.first_name} {user.last_name}"
+            session['is_admin'] = user.is_admin  # Добавляем эту строку
             flash('Вы успешно вошли в систему', 'success')
             
             # Редирект на сохраненную страницу или на главную

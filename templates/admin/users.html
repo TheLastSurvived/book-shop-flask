@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Управление пользователями | Админка{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 mb-4">
+            {% include "admin/sidebar.html" %}
+        </div>
+        
+        <div class="col-md-9 col-lg-10">
+            <h1 class="mb-4">Управление пользователями</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-10">
+                                <input type="text" name="search" class="form-control" 
+                                       placeholder="Поиск по имени, фамилии или email..." 
+                                       value="{{ search }}">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-search"></i> Поиск
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Email</th>
+                                    <th>Телефон</th>
+                                    <th>Администратор</th>
+                                    <th>Дата регистрации</th>
+                                    <th>Заказов</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>
+                                        <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                                    </td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.phone or '—' }}</td>
+                                    <td>
+                                        {% if user.is_admin %}
+                                            <span class="badge bg-success">Да</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Нет</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.created_at.strftime('%d.%m.%Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ user.orders|length }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if pagination.pages > 1 %}
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ pagination.prev_num }}&search={{ search }}">«</a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page in pagination.iter_pages() %}
+                                {% if page %}
+                                    <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                                        <a class="page-link" href="?page={{ page }}&search={{ search }}">{{ page }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ pagination.next_num }}&search={{ search }}">»</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Управление отзывами | Админка{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 mb-4">
+            {% include "admin/sidebar.html" %}
+        </div>
+        
+        <div class="col-md-9 col-lg-10">
+            <h1 class="mb-4">Управление отзывами</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Книга</th>
+                                    <th>Пользователь</th>
+                                    <th>Рейтинг</th>
+                                    <th>Отзыв</th>
+                                    <th>Дата</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for review in reviews %}
+                                <tr>
+                                    <td>{{ review.id }}</td>
+                                    <td>
+                                        <a href="{{ url_for('book_details', book_id=review.book.id) }}" target="_blank">
+                                            {{ review.book.title }}
+                                        </a>
+                                    </td>
+                                    <td>{{ review.user.first_name }} {{ review.user.last_name }}</td>
+                                    <td>
+                                        {% for i in range(review.rating) %}
+                                            <i class="bi bi-star-fill text-warning"></i>
+                                        {% endfor %}
+                                        {% for i in range(5 - review.rating) %}
+                                            <i class="bi bi-star text-warning"></i>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <div style="max-width: 300px;">
+                                            {{ review.text[:100] }}{% if review.text|length > 100 %}...{% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ review.created_at.strftime('%d.%m.%Y') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.delete_review', review_id=review.id) }}" 
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('Удалить отзыв?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if pagination.pages > 1 %}
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ pagination.prev_num }}">«</a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page in pagination.iter_pages() %}
+                                {% if page %}
+                                    <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                                        <a class="page-link" href="?page={{ page }}">{{ page }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ pagination.next_num }}">»</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

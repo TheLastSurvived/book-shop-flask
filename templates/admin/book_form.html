@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | Админка{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 mb-4">
+            {% include "admin/sidebar.html" %}
+        </div>
+        
+        <div class="col-md-9 col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>{{ title }}</h1>
+                <a href="{{ url_for('admin.books') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Назад
+                </a>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Название книги *</label>
+                                    <input type="text" name="title" class="form-control" 
+                                           value="{{ book.title if book else '' }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Автор *</label>
+                                    <input type="text" name="author" class="form-control" 
+                                           value="{{ book.author if book else '' }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Описание *</label>
+                                    <textarea name="description" class="form-control" rows="5" required>{{ book.description if book else '' }}</textarea>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Цена (руб.) *</label>
+                                            <input type="number" name="price" step="0.01" class="form-control" 
+                                                   value="{{ book.price if book else '' }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Старая цена (руб.)</label>
+                                            <input type="number" name="old_price" step="0.01" class="form-control" 
+                                                   value="{{ book.old_price if book else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">ISBN</label>
+                                            <input type="text" name="isbn" class="form-control" 
+                                                   value="{{ book.isbn if book else '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Издательство</label>
+                                            <input type="text" name="publisher" class="form-control" 
+                                                   value="{{ book.publisher if book else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Год издания</label>
+                                            <input type="number" name="year" class="form-control" 
+                                                   value="{{ book.year if book else '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Количество страниц</label>
+                                            <input type="number" name="pages" class="form-control" 
+                                                   value="{{ book.pages if book else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Изображение</label>
+                                            <input type="text" name="image" class="form-control" 
+                                                   value="{{ book.image if book else 'book.jpg' }}">
+                                            <small class="text-muted">Имя файла из папки static/img/books/</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Количество в наличии</label>
+                                            <input type="number" name="stock" class="form-control" 
+                                                   value="{{ book.stock if book else 10 }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Категория *</label>
+                                    <select name="category_id" class="form-select" required>
+                                        {% for category in categories %}
+                                            <option value="{{ category.id }}" 
+                                                {% if book and book.category_id == category.id %}selected{% endif %}>
+                                                {{ category.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Статусы книги</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-check mb-2">
+                                            <input type="checkbox" name="is_new" class="form-check-input" 
+                                                   id="is_new" {% if book and book.is_new %}checked{% endif %}>
+                                            <label class="form-check-label" for="is_new">Новинка</label>
+                                        </div>
+                                        
+                                        <div class="form-check mb-2">
+                                            <input type="checkbox" name="is_bestseller" class="form-check-input" 
+                                                   id="is_bestseller" {% if book and book.is_bestseller %}checked{% endif %}>
+                                            <label class="form-check-label" for="is_bestseller">Бестселлер</label>
+                                        </div>
+                                        
+                                        <div class="form-check mb-3">
+                                            <input type="checkbox" name="is_sale" class="form-check-input" 
+                                                   id="is_sale" {% if book and book.is_sale %}checked{% endif %}>
+                                            <label class="form-check-label" for="is_sale">Акция</label>
+                                        </div>
+                                        
+                                        <div class="mb-3" id="sale_percent_div" 
+                                             style="display: {% if book and book.is_sale %}block{% else %}none{% endif %};">
+                                            <label class="form-label">Процент скидки</label>
+                                            <input type="number" name="sale_percent" class="form-control" 
+                                                   value="{{ book.sale_percent if book else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-2"></i>Сохранить
+                            </button>
+                            <a href="{{ url_for('admin.books') }}" class="btn btn-secondary">Отмена</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('is_sale').addEventListener('change', function() {
+    var div = document.getElementById('sale_percent_div');
+    if (this.checked) {
+        div.style.display = 'block';
+    } else {
+        div.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}
