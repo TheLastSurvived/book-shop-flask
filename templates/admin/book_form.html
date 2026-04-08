@@ -19,7 +19,7 @@
             
             <div class="card">
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="mb-3">
@@ -93,35 +93,48 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="form-label">Изображение</label>
-                                            <input type="text" name="image" class="form-control" 
-                                                   value="{{ book.image if book else 'book.jpg' }}">
-                                            <small class="text-muted">Имя файла из папки static/img/books/</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
                                             <label class="form-label">Количество в наличии</label>
                                             <input type="number" name="stock" class="form-control" 
                                                    value="{{ book.stock if book else 10 }}">
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Категория *</label>
-                                    <select name="category_id" class="form-select" required>
-                                        {% for category in categories %}
-                                            <option value="{{ category.id }}" 
-                                                {% if book and book.category_id == category.id %}selected{% endif %}>
-                                                {{ category.name }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Категория *</label>
+                                            <select name="category_id" class="form-select" required>
+                                                {% for category in categories %}
+                                                    <option value="{{ category.id }}" 
+                                                        {% if book and book.category_id == category.id %}selected{% endif %}>
+                                                        {{ category.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
                             <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Обложка книги</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {% if book and book.image %}
+                                        <div class="text-center mb-3">
+                                            <img src="{{ url_for('static', filename='img/books/' + book.image) }}" 
+                                                 alt="{{ book.title }}" style="max-width: 100%; max-height: 200px; object-fit: contain;">
+                                            <p class="text-muted small mt-2">Текущее изображение: {{ book.image }}</p>
+                                        </div>
+                                        {% endif %}
+                                        <div class="mb-3">
+                                            <label class="form-label">Загрузить новое изображение</label>
+                                            <input type="file" name="image" class="form-control" accept="image/*">
+                                            <small class="text-muted">Поддерживаемые форматы: PNG, JPG, JPEG, GIF, WEBP</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <div class="card">
                                     <div class="card-header">
                                         <h5 class="mb-0">Статусы книги</h5>

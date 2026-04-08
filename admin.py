@@ -3,9 +3,18 @@ from models import db, User, Category, Book, Review, Order, OrderItem
 from functools import wraps
 from datetime import datetime
 from sqlalchemy import func, or_
+import os
+from werkzeug.utils import secure_filename
+from flask import current_app
 
 # Создаем Blueprint для админки
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+# Конфигурация загрузки файлов
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Декоратор для проверки прав администратора
 def admin_required(f):
@@ -16,7 +25,6 @@ def admin_required(f):
             return redirect(url_for('login'))
         
         user = User.query.get(session['user_id'])
-        # Проверяем поле is_admin
         if not user or not user.is_admin:
             flash('Доступ запрещен. Требуются права администратора.', 'danger')
             return redirect(url_for('index'))
@@ -28,25 +36,17 @@ def admin_required(f):
 @admin_bp.route('/')
 @admin_required
 def dashboard():
-    # Статистика
     total_users = User.query.count()
     total_books = Book.query.count()
     total_orders = Order.query.count()
     total_reviews = Review.query.count()
     
-    # Последние заказы
     recent_orders = Order.query.order_by(Order.created_at.desc()).limit(10).all()
-    
-    # Популярные книги
     popular_books = Book.query.order_by(Book.reviews_count.desc()).limit(5).all()
     
-    # Статистика по месяцам (последние 6 месяцев)
     monthly_stats = []
-    from sqlalchemy import func
-    
     for i in range(6):
         month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0)
-        # Простая статистика - в реальном проекте нужно сделать более сложный запрос
         monthly_stats.append({
             'month': month_start.strftime('%B'),
             'orders': 0,
@@ -61,7 +61,6 @@ def dashboard():
                          recent_orders=recent_orders,
                          popular_books=popular_books,
                          monthly_stats=monthly_stats)
-
 
 @admin_bp.route('/admins')
 @admin_required
@@ -88,7 +87,6 @@ def admins():
 @admin_bp.route('/admins/toggle/<int:user_id>')
 @admin_required
 def toggle_admin(user_id):
-    # Не даем снять права админа с самого себя
     if user_id == session['user_id']:
         flash('Вы не можете изменить свои права администратора', 'danger')
         return redirect(url_for('admin.admins'))
@@ -132,7 +130,6 @@ def books():
 @admin_required
 def add_book():
     if request.method == 'POST':
-        # Получаем данные из формы
         title = request.form.get('title')
         author = request.form.get('author')
         description = request.form.get('description')
@@ -142,11 +139,21 @@ def add_book():
         publisher = request.form.get('publisher')
         year = request.form.get('year')
         pages = request.form.get('pages')
-        image = request.form.get('image', 'book.jpg')
         stock = int(request.form.get('stock', 10))
         category_id = int(request.form.get('category_id'))
         
-        # Булевы значения
+        # Обработка загрузки изображения
+        image_filename = 'book.jpg'  # значение по умолчанию
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                # Добавляем timestamp к имени файла, чтобы избежать дубликатов
+                name_parts = filename.rsplit('.', 1)
+                unique_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{name_parts[0]}.{name_parts[1]}"
+                file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename))
+                image_filename = unique_filename
+        
         is_new = 'is_new' in request.form
         is_bestseller = 'is_bestseller' in request.form
         is_sale = 'is_sale' in request.form
@@ -162,7 +169,7 @@ def add_book():
             publisher=publisher,
             year=int(year) if year else None,
             pages=int(pages) if pages else None,
-            image=image,
+            image=image_filename,
             stock=stock,
             is_new=is_new,
             is_bestseller=is_bestseller,
@@ -195,9 +202,24 @@ def edit_book(book_id):
         book.publisher = request.form.get('publisher')
         book.year = int(request.form.get('year')) if request.form.get('year') else None
         book.pages = int(request.form.get('pages')) if request.form.get('pages') else None
-        book.image = request.form.get('image', 'book.jpg')
         book.stock = int(request.form.get('stock', 10))
         book.category_id = int(request.form.get('category_id'))
+        
+        # Обработка загрузки нового изображения
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename and allowed_file(file.filename):
+                # Удаляем старое изображение, если оно не стандартное
+                if book.image and book.image != 'book.jpg':
+                    old_image_path = os.path.join(current_app.config['UPLOAD_FOLDER'], book.image)
+                    if os.path.exists(old_image_path):
+                        os.remove(old_image_path)
+                
+                filename = secure_filename(file.filename)
+                name_parts = filename.rsplit('.', 1)
+                unique_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{name_parts[0]}.{name_parts[1]}"
+                file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename))
+                book.image = unique_filename
         
         book.is_new = 'is_new' in request.form
         book.is_bestseller = 'is_bestseller' in request.form
@@ -220,9 +242,13 @@ def edit_book(book_id):
 def delete_book(book_id):
     book = Book.query.get_or_404(book_id)
     
-    # Удаляем связанные отзывы и позиции в заказах
-    Review.query.filter_by(book_id=book_id).delete()
+    # Удаляем изображение книги, если оно не стандартное
+    if book.image and book.image != 'book.jpg':
+        image_path = os.path.join(current_app.config['UPLOAD_FOLDER'], book.image)
+        if os.path.exists(image_path):
+            os.remove(image_path)
     
+    Review.query.filter_by(book_id=book_id).delete()
     db.session.delete(book)
     db.session.commit()
     
@@ -243,7 +269,16 @@ def add_category():
     slug = request.form.get('slug')
     image = request.form.get('image', 'book.jpg')
     
-    # Проверяем, существует ли категория
+    # Обработка загрузки изображения категории
+    if 'image_file' in request.files:
+        file = request.files['image_file']
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            name_parts = filename.rsplit('.', 1)
+            unique_filename = f"cat_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{name_parts[0]}.{name_parts[1]}"
+            file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename))
+            image = unique_filename
+    
     existing = Category.query.filter_by(slug=slug).first()
     if existing:
         flash('Категория с таким slug уже существует', 'danger')
@@ -262,7 +297,27 @@ def edit_category(category_id):
     category = Category.query.get_or_404(category_id)
     category.name = request.form.get('name')
     category.slug = request.form.get('slug')
-    category.image = request.form.get('image', 'book.jpg')
+    
+    # Обработка загрузки нового изображения категории
+    if 'image_file' in request.files:
+        file = request.files['image_file']
+        if file and file.filename and allowed_file(file.filename):
+            # Удаляем старое изображение
+            if category.image and category.image != 'book.jpg':
+                old_image_path = os.path.join(current_app.config['UPLOAD_FOLDER'], category.image)
+                if os.path.exists(old_image_path):
+                    os.remove(old_image_path)
+            
+            filename = secure_filename(file.filename)
+            name_parts = filename.rsplit('.', 1)
+            unique_filename = f"cat_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{name_parts[0]}.{name_parts[1]}"
+            file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename))
+            category.image = unique_filename
+    else:
+        # Если файл не загружен, берем из формы (если есть)
+        image = request.form.get('image')
+        if image:
+            category.image = image
     
     db.session.commit()
     flash('Категория успешно обновлена!', 'success')
@@ -271,13 +326,19 @@ def edit_category(category_id):
 @admin_bp.route('/categories/delete/<int:category_id>')
 @admin_required
 def delete_category(category_id):
-    # Проверяем, есть ли книги в этой категории
     books_count = Book.query.filter_by(category_id=category_id).count()
     if books_count > 0:
         flash(f'Нельзя удалить категорию, в ней {books_count} книг. Сначала переместите или удалите книги.', 'danger')
         return redirect(url_for('admin.categories'))
     
     category = Category.query.get_or_404(category_id)
+    
+    # Удаляем изображение категории
+    if category.image and category.image != 'book.jpg':
+        image_path = os.path.join(current_app.config['UPLOAD_FOLDER'], category.image)
+        if os.path.exists(image_path):
+            os.remove(image_path)
+    
     db.session.delete(category)
     db.session.commit()
     
@@ -369,7 +430,6 @@ def delete_review(review_id):
     
     db.session.delete(review)
     
-    # Обновляем рейтинг книги
     book = Book.query.get(book_id)
     remaining_reviews = Review.query.filter_by(book_id=book_id).all()
     if remaining_reviews:
@@ -394,16 +454,12 @@ def export_orders():
     
     orders = Order.query.order_by(Order.created_at.desc()).all()
     
-    # Используем StringIO с правильной кодировкой
     si = StringIO()
-    # Добавляем BOM для Excel (UTF-8 with BOM)
     si.write('\ufeff')
-    cw = csv.writer(si, delimiter=';', quoting=csv.QUOTE_MINIMAL)  # Используем ; как разделитель для Excel
+    cw = csv.writer(si, delimiter=';', quoting=csv.QUOTE_MINIMAL)
     
-    # Заголовки
     cw.writerow(['Номер заказа', 'Дата', 'Пользователь', 'Email', 'Сумма', 'Статус'])
     
-    # Данные
     for order in orders:
         cw.writerow([
             order.order_number,
@@ -416,7 +472,6 @@ def export_orders():
     
     output = si.getvalue()
     
-    # Возвращаем с правильными заголовками для скачивания
     return Response(
         output,
         mimetype='text/csv; charset=utf-8',
@@ -427,7 +482,6 @@ def export_orders():
     )
 
 def get_status_name(status):
-    """Преобразует статус в читаемое название"""
     status_map = {
         'processing': 'В обработке',
         'shipped': 'Отправлен',

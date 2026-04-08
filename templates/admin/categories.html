@@ -3,6 +3,7 @@
 {% block title %}Управление категориями | Админка{% endblock %}
 
 {% block content %}
+<div style="height: 70px;"></div>
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-md-3 col-lg-2 mb-4">
@@ -19,7 +20,7 @@
                             <h5 class="mb-0">Добавить категорию</h5>
                         </div>
                         <div class="card-body">
-                            <form action="{{ url_for('admin.add_category') }}" method="post">
+                            <form action="{{ url_for('admin.add_category') }}" method="post" enctype="multipart/form-data">
                                 <div class="mb-3">
                                     <label class="form-label">Название *</label>
                                     <input type="text" name="name" class="form-control" required>
@@ -30,8 +31,9 @@
                                     <small class="text-muted">Например: fiction, detective</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Изображение</label>
-                                    <input type="text" name="image" class="form-control" value="book.jpg">
+                                    <label class="form-label">Изображение категории</label>
+                                    <input type="file" name="image_file" class="form-control" accept="image/*">
+                                    <small class="text-muted">Поддерживаемые форматы: PNG, JPG, JPEG, GIF, WEBP</small>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">
                                     <i class="bi bi-plus-circle me-2"></i>Добавить
@@ -52,9 +54,9 @@
                                     <thead>
                                         <tr>
                                             <th>ID</th>
+                                            <th>Изображение</th>
                                             <th>Название</th>
                                             <th>Slug</th>
-                                            <th>Изображение</th>
                                             <th>Книг</th>
                                             <th>Действия</th>
                                         </tr>
@@ -64,10 +66,13 @@
                                         <tr>
                                             <td>{{ category.id }}</td>
                                             <td>
+                                                <img src="{{ url_for('static', filename='img/books/' + category.image) }}" 
+                                                     alt="{{ category.name }}" style="width: 40px; height: 40px; object-fit: cover;">
+                                            </td>
+                                            <td>
                                                 <strong>{{ category.name }}</strong>
                                             </td>
                                             <td><code>{{ category.slug }}</code></td>
-                                            <td>{{ category.image }}</td>
                                             <td>
                                                 <span class="badge bg-info">{{ category.books|length }}</span>
                                             </td>
@@ -88,12 +93,18 @@
                                         <div class="modal fade" id="editModal{{ category.id }}" tabindex="-1">
                                             <div class="modal-dialog">
                                                 <div class="modal-content">
-                                                    <form action="{{ url_for('admin.edit_category', category_id=category.id) }}" method="post">
+                                                    <form action="{{ url_for('admin.edit_category', category_id=category.id) }}" method="post" enctype="multipart/form-data">
                                                         <div class="modal-header">
                                                             <h5 class="modal-title">Редактировать категорию</h5>
                                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                         </div>
                                                         <div class="modal-body">
+                                                            {% if category.image and category.image != 'book.jpg' %}
+                                                            <div class="text-center mb-3">
+                                                                <img src="{{ url_for('static', filename='img/books/' + category.image) }}" 
+                                                                     alt="{{ category.name }}" style="max-width: 100px; max-height: 100px;">
+                                                            </div>
+                                                            {% endif %}
                                                             <div class="mb-3">
                                                                 <label class="form-label">Название</label>
                                                                 <input type="text" name="name" class="form-control" 
@@ -105,10 +116,11 @@
                                                                        value="{{ category.slug }}" required>
                                                             </div>
                                                             <div class="mb-3">
-                                                                <label class="form-label">Изображение</label>
-                                                                <input type="text" name="image" class="form-control" 
-                                                                       value="{{ category.image }}">
+                                                                <label class="form-label">Новое изображение</label>
+                                                                <input type="file" name="image_file" class="form-control" accept="image/*">
+                                                                <small class="text-muted">Оставьте пустым, чтобы сохранить текущее изображение</small>
                                                             </div>
+                                                            <input type="hidden" name="image" value="{{ category.image }}">
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>

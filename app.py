@@ -5,11 +5,14 @@ import random
 import string
 from datetime import datetime
 from admin import admin_bp
+import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
 app.register_blueprint(admin_bp)
+
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Контекстный процессор для передачи данных во все шаблоны
 @app.context_processor
