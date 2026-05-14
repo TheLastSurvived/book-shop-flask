@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}{{ room.name }} | Чат | Книжный магазин{% endblock %}
+
+{% block content %}
+<style>
+    .chat-container {
+        background: #f8f9fa;
+        border-radius: 15px;
+        overflow: hidden;
+        height: calc(100vh - 200px);
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-header {
+        background: white;
+        padding: 15px 20px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+    }
+    .message {
+        margin-bottom: 15px;
+        display: flex;
+        animation: fadeIn 0.3s ease;
+    }
+    .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+    .message-avatar.admin {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    .message-content {
+        margin-left: 12px;
+        flex: 1;
+        max-width: calc(100% - 52px);
+    }
+    .message-header {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 5px;
+        flex-wrap: wrap;
+    }
+    .message-author {
+        font-weight: 600;
+        color: #333;
+    }
+    .message-author.admin {
+        color: #dc3545;
+    }
+    .message-time {
+        font-size: 0.7rem;
+        color: #6c757d;
+    }
+    .message-text {
+        background: white;
+        padding: 10px 15px;
+        border-radius: 15px;
+        border-top-left-radius: 5px;
+        display: inline-block;
+        word-wrap: break-word;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        max-width: 100%;
+    }
+    
+    /* Стили для своих сообщений */
+    .message.my-message {
+        flex-direction: row-reverse;
+    }
+    .message.my-message .message-content {
+        margin-left: 0;
+        margin-right: 12px;
+        text-align: right;
+    }
+    .message.my-message .message-header {
+        justify-content: flex-end;
+    }
+    .message.my-message .message-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-top-left-radius: 15px;
+        border-top-right-radius: 5px;
+        text-align: left;
+    }
+    
+    /* Стили для сообщений других пользователей */
+    .message.other-message .message-header {
+        justify-content: flex-start;
+    }
+    .message.other-message .message-text {
+        text-align: left;
+    }
+    
+    .chat-input-area {
+        background: white;
+        padding: 15px 20px;
+        border-top: 1px solid #dee2e6;
+    }
+    .chat-input-group {
+        display: flex;
+        gap: 10px;
+    }
+    .chat-input {
+        flex: 1;
+        border: 1px solid #dee2e6;
+        border-radius: 25px;
+        padding: 10px 20px;
+        outline: none;
+        transition: all 0.3s;
+    }
+    .chat-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102,126,234,0.1);
+    }
+    .send-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 25px;
+        padding: 10px 25px;
+        color: white;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    .send-btn:hover {
+        transform: scale(1.02);
+        opacity: 0.9;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .typing-indicator {
+        padding: 10px 20px;
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-style: italic;
+    }
+</style>
+
+<section class="chat-section py-3">
+    <div class="container-fluid px-4">
+        <div class="chat-container">
+            <div class="chat-header d-flex justify-content-between align-items-center">
+                <div>
+                    <a href="{{ url_for('chat') }}" class="btn btn-sm btn-outline-secondary me-3">
+                        <i class="bi bi-arrow-left"></i>
+                    </a>
+                    <i class="bi bi-hash fs-4 text-primary"></i>
+                    <strong class="fs-5">{{ room.name }}</strong>
+                    <span class="text-muted ms-2">— {{ room.description }}</span>
+                </div>
+                <div>
+                    <span class="text-muted small">
+                        <i class="bi bi-people"></i> Общий чат
+                    </span>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                {% for msg in messages %}
+                <div class="message {% if msg.user_id == session.user_id %}my-message{% else %}other-message{% endif %}" data-message-id="{{ msg.id }}">
+                    <div class="message-avatar {% if msg.user.is_admin %}admin{% endif %}">
+                        {{ msg.user.first_name[0] }}{{ msg.user.last_name[0] }}
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-author {% if msg.user.is_admin %}admin{% endif %}">
+                                {{ msg.user.first_name }} {{ msg.user.last_name }}
+                                {% if msg.user.is_admin %}
+                                <span class="badge bg-danger ms-1">Admin</span>
+                                {% endif %}
+                            </span>
+                            <span class="message-time">{{ msg.created_at.strftime('%H:%M') }}</span>
+                        </div>
+                        <div class="message-text">{{ msg.message }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <i class="bi bi-three-dots"></i> Кто-то печатает...
+            </div>
+
+            <div class="chat-input-area">
+                <div class="chat-input-group">
+                    <input type="text" class="chat-input" id="messageInput" 
+                           placeholder="Введите сообщение..." autocomplete="off">
+                    <button class="send-btn" id="sendBtn">
+                        <i class="bi bi-send"></i> Отправить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    const currentUserId = {{ session.user_id }};
+    const roomId = {{ room.id }};
+    let lastMessageId = {{ messages[-1].id if messages else 0 }};
+    let pollingInterval = null;
+
+    const chatMessages = document.getElementById('chatMessages');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // Функция для добавления нового сообщения в DOM
+    function addMessageToDOM(msg) {
+        const isMyMessage = msg.user.id === currentUserId;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isMyMessage ? 'my-message' : 'other-message'}`;
+        messageDiv.setAttribute('data-message-id', msg.id);
+        
+        const firstLetter = msg.user.name.split(' ').map(n => n[0]).join('');
+        
+        messageDiv.innerHTML = `
+            <div class="message-avatar ${msg.user.is_admin ? 'admin' : ''}">
+                ${escapeHtml(firstLetter)}
+            </div>
+            <div class="message-content">
+                <div class="message-header">
+                    <span class="message-author ${msg.user.is_admin ? 'admin' : ''}">
+                        ${escapeHtml(msg.user.name)}
+                        ${msg.user.is_admin ? '<span class="badge bg-danger ms-1">Admin</span>' : ''}
+                    </span>
+                    <span class="message-time">${escapeHtml(msg.created_at)}</span>
+                </div>
+                <div class="message-text">${escapeHtml(msg.message)}</div>
+            </div>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        // Прокручиваем вниз
+        messageDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Функция для экранирования HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Функция для получения новых сообщений
+    async function fetchNewMessages() {
+        try {
+            const response = await fetch(`/chat/api/messages?room_id=${roomId}&last_id=${lastMessageId}`);
+            const messages = await response.json();
+            
+            for (const msg of messages) {
+                if (msg.id > lastMessageId) {
+                    addMessageToDOM(msg);
+                    lastMessageId = msg.id;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    }
+
+    // Функция для отправки сообщения
+    async function sendMessage() {
+        const message = messageInput.value.trim();
+        if (!message) return;
+        
+        sendBtn.disabled = true;
+        messageInput.disabled = true;
+        
+        try {
+            const response = await fetch('/chat/api/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    room_id: roomId,
+                    message: message
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                messageInput.value = '';
+                addMessageToDOM(data);
+                lastMessageId = data.id;
+            } else {
+                alert(data.error || 'Ошибка отправки сообщения');
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            alert('Ошибка соединения');
+        } finally {
+            sendBtn.disabled = false;
+            messageInput.disabled = false;
+            messageInput.focus();
+        }
+    }
+
+    // Обработчики событий
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Запускаем polling для получения новых сообщений (каждые 2 секунды)
+    pollingInterval = setInterval(fetchNewMessages, 2000);
+    
+    // Прокрутка вниз при загрузке
+    setTimeout(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }, 100);
+    
+    // Очистка интервала при уходе со страницы
+    window.addEventListener('beforeunload', () => {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+    });
+</script>
+{% endblock %}

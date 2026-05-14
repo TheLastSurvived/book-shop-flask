@@ -1,11 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from config import Config
-from models import db, User, Category, Book, Review, Order, OrderItem, Wishlist
+from models import db, User, Category, Book, Review, Order, OrderItem, Wishlist, ChatRoom, ChatMessage
 import random
 import string
 from datetime import datetime
 from admin import admin_bp
 import os
+import json
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -500,6 +501,156 @@ def logout():
     flash('Вы вышли из системы', 'info')
     return redirect(url_for('index'))
 
+
+# ==================== ЧАТ ====================
+
+@app.route('/chat')
+def chat():
+    """Главная страница чата"""
+    if 'user_id' not in session:
+        flash('Войдите, чтобы использовать чат', 'warning')
+        return redirect(url_for('login', next=url_for('chat')))
+    
+    rooms = ChatRoom.query.all()
+    
+    # Если нет комнат, создаем стандартные
+    if not rooms:
+        default_rooms = [
+            {'name': 'Общий чат', 'slug': 'general', 'description': 'Обсуждение книг и всего, что связано с чтением'},
+            {'name': 'Новинки', 'slug': 'new-books', 'description': 'Обсуждение новых поступлений'},
+            {'name': 'Книжные рекомендации', 'slug': 'recommendations', 'description': 'Делитесь впечатлениями и рекомендуйте книги'},
+            {'name': 'Вопросы и ответы', 'slug': 'faq-chat', 'description': 'Задавайте вопросы о работе магазина'},
+        ]
+        for room_data in default_rooms:
+            room = ChatRoom(**room_data)
+            db.session.add(room)
+        db.session.commit()
+        rooms = ChatRoom.query.all()
+    
+    # Создаем словарь с последними сообщениями для каждой комнаты
+    last_messages = {}
+    for room in rooms:
+        last_msg = ChatMessage.query.filter_by(room_id=room.id).order_by(ChatMessage.created_at.desc()).first()
+        last_messages[room.id] = last_msg
+    
+    return render_template('chat/index.html', rooms=rooms, last_messages=last_messages)
+
+
+@app.route('/chat/room/<slug>')
+def chat_room(slug):
+    """Страница комнаты чата"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    room = ChatRoom.query.filter_by(slug=slug).first_or_404()
+    
+    # Получаем последние 50 сообщений
+    messages = ChatMessage.query.filter_by(room_id=room.id)\
+                                .order_by(ChatMessage.created_at.asc())\
+                                .limit(100).all()
+    
+    return render_template('chat/room.html', room=room, messages=messages)
+
+
+@app.route('/chat/api/messages', methods=['GET', 'POST'])
+def chat_api():
+    """API для сообщений чата"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        room_id = data.get('room_id')
+        message = data.get('message', '').strip()
+        
+        if not message:
+            return jsonify({'error': 'Сообщение не может быть пустым'}), 400
+        
+        room = ChatRoom.query.get(room_id)
+        if not room:
+            return jsonify({'error': 'Комната не найдена'}), 404
+        
+        # Создаем сообщение
+        chat_message = ChatMessage(
+            message=message,
+            user_id=session['user_id'],
+            room_id=room_id
+        )
+        db.session.add(chat_message)
+        db.session.commit()
+        
+        # Получаем пользователя
+        user = User.query.get(session['user_id'])
+        
+        return jsonify({
+            'id': chat_message.id,
+            'message': chat_message.message,
+            'created_at': chat_message.created_at.strftime('%H:%M'),
+            'created_at_full': chat_message.created_at.strftime('%d.%m.%Y %H:%M'),
+            'user': {
+                'id': user.id,
+                'name': f"{user.first_name} {user.last_name}",
+                'is_admin': user.is_admin
+            }
+        })
+    
+    # GET запрос - получаем новые сообщения
+    room_id = request.args.get('room_id', type=int)
+    last_id = request.args.get('last_id', 0, type=int)
+    
+    if not room_id:
+        return jsonify({'error': 'room_id required'}), 400
+    
+    messages = ChatMessage.query.filter(
+        ChatMessage.room_id == room_id,
+        ChatMessage.id > last_id
+    ).order_by(ChatMessage.created_at.asc()).all()
+    
+    result = []
+    for msg in messages:
+        result.append({
+            'id': msg.id,
+            'message': msg.message,
+            'created_at': msg.created_at.strftime('%H:%M'),
+            'created_at_full': msg.created_at.strftime('%d.%m.%Y %H:%M'),
+            'user': {
+                'id': msg.user.id,
+                'name': f"{msg.user.first_name} {msg.user.last_name}",
+                'is_admin': msg.user.is_admin
+            }
+        })
+    
+    return jsonify(result)
+
+
+
+
+@app.route('/chat/users/search')
+def search_users_for_chat():
+    """Поиск пользователей для начала диалога"""
+    if 'user_id' not in session:
+        return jsonify([])
+    
+    query = request.args.get('q', '')
+    if len(query) < 2:
+        return jsonify([])
+    
+    users = User.query.filter(
+        db.or_(
+            User.first_name.ilike(f'%{query}%'),
+            User.last_name.ilike(f'%{query}%'),
+            User.email.ilike(f'%{query}%')
+        ),
+        User.id != session['user_id']
+    ).limit(10).all()
+    
+    return jsonify([{
+        'id': u.id,
+        'name': f"{u.first_name} {u.last_name}",
+        'email': u.email,
+        'is_admin': u.is_admin
+    } for u in users])
+
 # Инициализация базы данных
 @app.cli.command('init-db')
 def init_db():
@@ -619,8 +770,43 @@ def init_db():
     user.set_password('password123')
     db.session.add(user)
     db.session.commit()
+
     
     print('База данных инициализирована!')
+
+@app.cli.command('init-chat')
+def init_chat():
+    """Создание комнат чата (не затрагивает существующие данные)"""
+    from models import ChatRoom, ChatMessage, PrivateMessage
+    
+    # Проверяем, существует ли таблица чата
+    inspector = db.inspect(db.engine)
+    if 'chat_rooms' not in inspector.get_table_names():
+        print('❌ Таблицы чата не существуют. Сначала выполните flask init-db')
+        return
+    
+    chat_rooms = [
+        {'name': 'Общий чат', 'slug': 'general', 'description': 'Обсуждение книг и всего, что связано с чтением', 'is_private': False},
+        {'name': 'Новинки', 'slug': 'new-books', 'description': 'Обсуждение новых поступлений', 'is_private': False},
+        {'name': 'Книжные рекомендации', 'slug': 'recommendations', 'description': 'Делитесь впечатлениями и рекомендуйте книги', 'is_private': False},
+        {'name': 'Вопросы и ответы', 'slug': 'faq-chat', 'description': 'Задавайте вопросы о работе магазина', 'is_private': False},
+    ]
+    
+    created_count = 0
+    for room_data in chat_rooms:
+        room = ChatRoom.query.filter_by(slug=room_data['slug']).first()
+        if not room:
+            room = ChatRoom(**room_data)
+            db.session.add(room)
+            created_count += 1
+            print(f'➕ Создана комната: {room_data["name"]}')
+    
+    db.session.commit()
+    
+    if created_count > 0:
+        print(f'\n✅ Создано {created_count} комнат чата')
+    else:
+        print('\nℹ️ Все комнаты чата уже существуют')
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -125,3 +125,36 @@ class Wishlist(db.Model):
     book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=False)
     
     __table_args__ = (db.UniqueConstraint('user_id', 'book_id', name='unique_user_book'),)
+
+
+class ChatRoom(db.Model):
+    __tablename__ = 'chat_rooms'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    slug = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.String(200))
+    is_private = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    messages = db.relationship('ChatMessage', backref='room', lazy=True)
+    
+    def __repr__(self):
+        return f'<ChatRoom {self.name}>'
+
+
+class ChatMessage(db.Model):
+    __tablename__ = 'chat_messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    room_id = db.Column(db.Integer, db.ForeignKey('chat_rooms.id'), nullable=False)
+    
+    user = db.relationship('User', backref='messages')
+    
+    def __repr__(self):
+        return f'<ChatMessage {self.user_id}>'
+

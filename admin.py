@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
-from models import db, User, Category, Book, Review, Order, OrderItem
+from models import db, User, Category, Book, Review, Order, OrderItem, ChatRoom, ChatMessage
+
 from functools import wraps
 from datetime import datetime
 from sqlalchemy import func, or_
@@ -489,3 +490,211 @@ def get_status_name(status):
         'cancelled': 'Отменен'
     }
     return status_map.get(status, status)
+
+
+
+# ==================== УПРАВЛЕНИЕ ЧАТОМ ====================
+
+
+@admin_bp.route('/chat/rooms')
+@admin_required
+def chat_rooms():
+    """Управление комнатами чата"""
+    rooms = ChatRoom.query.order_by(ChatRoom.created_at.desc()).all()
+    
+    # Статистика по каждой комнате
+    room_stats = {}
+    for room in rooms:
+        msg_count = ChatMessage.query.filter_by(room_id=room.id).count()
+        last_msg = ChatMessage.query.filter_by(room_id=room.id).order_by(ChatMessage.created_at.desc()).first()
+        room_stats[room.id] = {
+            'message_count': msg_count,
+            'last_message': last_msg
+        }
+    
+    return render_template('admin/chat_rooms.html', rooms=rooms, room_stats=room_stats)
+
+
+@admin_bp.route('/chat/rooms/add', methods=['POST'])
+@admin_required
+def add_chat_room():
+    """Создание новой комнаты чата"""
+    name = request.form.get('name')
+    slug = request.form.get('slug')
+    description = request.form.get('description', '')
+    is_private = 'is_private' in request.form
+    
+    if not name or not slug:
+        flash('Название и slug обязательны', 'danger')
+        return redirect(url_for('admin.chat_rooms'))
+    
+    # Проверяем уникальность slug
+    existing = ChatRoom.query.filter_by(slug=slug).first()
+    if existing:
+        flash(f'Комната с slug "{slug}" уже существует', 'danger')
+        return redirect(url_for('admin.chat_rooms'))
+    
+    room = ChatRoom(
+        name=name,
+        slug=slug,
+        description=description,
+        is_private=is_private
+    )
+    db.session.add(room)
+    db.session.commit()
+    
+    flash(f'Комната "{name}" успешно создана!', 'success')
+    return redirect(url_for('admin.chat_rooms'))
+
+
+@admin_bp.route('/chat/rooms/edit/<int:room_id>', methods=['POST'])
+@admin_required
+def edit_chat_room(room_id):
+    """Редактирование комнаты чата"""
+    room = ChatRoom.query.get_or_404(room_id)
+    
+    name = request.form.get('name')
+    slug = request.form.get('slug')
+    description = request.form.get('description', '')
+    is_private = 'is_private' in request.form
+    
+    if not name or not slug:
+        flash('Название и slug обязательны', 'danger')
+        return redirect(url_for('admin.chat_rooms'))
+    
+    # Проверяем уникальность slug (исключая текущую комнату)
+    existing = ChatRoom.query.filter(ChatRoom.slug == slug, ChatRoom.id != room_id).first()
+    if existing:
+        flash(f'Комната с slug "{slug}" уже существует', 'danger')
+        return redirect(url_for('admin.chat_rooms'))
+    
+    room.name = name
+    room.slug = slug
+    room.description = description
+    room.is_private = is_private
+    db.session.commit()
+    
+    flash(f'Комната "{name}" успешно обновлена!', 'success')
+    return redirect(url_for('admin.chat_rooms'))
+
+
+@admin_bp.route('/chat/rooms/delete/<int:room_id>')
+@admin_required
+def delete_chat_room(room_id):
+    """Удаление комнаты чата"""
+    room = ChatRoom.query.get_or_404(room_id)
+    room_name = room.name
+    
+    # Проверяем, не последняя ли это комната
+    room_count = ChatRoom.query.count()
+    if room_count <= 1:
+        flash('Нельзя удалить последнюю комнату чата', 'danger')
+        return redirect(url_for('admin.chat_rooms'))
+    
+    # Удаляем все сообщения в комнате
+    ChatMessage.query.filter_by(room_id=room_id).delete()
+    db.session.delete(room)
+    db.session.commit()
+    
+    flash(f'Комната "{room_name}" и все её сообщения удалены', 'success')
+    return redirect(url_for('admin.chat_rooms'))
+
+
+@admin_bp.route('/chat/messages/<int:room_id>')
+@admin_required
+def chat_messages(room_id):
+    """Просмотр сообщений в комнате"""
+    room = ChatRoom.query.get_or_404(room_id)
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    
+    pagination = ChatMessage.query.filter_by(room_id=room_id)\
+        .order_by(ChatMessage.created_at.desc())\
+        .paginate(page=page, per_page=per_page, error_out=False)
+    
+    messages = pagination.items
+    
+    return render_template('admin/chat_messages.html', 
+                         room=room, 
+                         messages=messages, 
+                         pagination=pagination)
+
+
+@admin_bp.route('/chat/messages/delete/<int:message_id>')
+@admin_required
+def delete_chat_message(message_id):
+    """Удаление отдельного сообщения"""
+    message = ChatMessage.query.get_or_404(message_id)
+    room_id = message.room_id
+    
+    db.session.delete(message)
+    db.session.commit()
+    
+    flash('Сообщение удалено', 'success')
+    return redirect(url_for('admin.chat_messages', room_id=room_id))
+
+
+@admin_bp.route('/chat/messages/clear/<int:room_id>')
+@admin_required
+def clear_chat_room(room_id):
+    """Очистка всех сообщений в комнате"""
+    room = ChatRoom.query.get_or_404(room_id)
+    
+    count = ChatMessage.query.filter_by(room_id=room_id).delete()
+    db.session.commit()
+    
+    flash(f'Очищено {count} сообщений в комнате "{room.name}"', 'success')
+    return redirect(url_for('admin.chat_messages', room_id=room_id))
+
+
+@admin_bp.route('/chat/stats')
+@admin_required
+def chat_stats():
+    """Статистика чата"""
+    total_rooms = ChatRoom.query.count()
+    total_messages = ChatMessage.query.count()
+    
+    # Статистика по дням (последние 7 дней)
+    from datetime import timedelta
+    daily_stats = []
+    for i in range(7):
+        date = datetime.now().date() - timedelta(days=i)
+        next_date = date + timedelta(days=1)
+        count = ChatMessage.query.filter(
+            ChatMessage.created_at >= date,
+            ChatMessage.created_at < next_date
+        ).count()
+        daily_stats.append({
+            'date': date.strftime('%d.%m'),
+            'count': count
+        })
+    
+    # Статистика по комнатам
+    room_stats = []
+    for room in ChatRoom.query.all():
+        count = ChatMessage.query.filter_by(room_id=room.id).count()
+        room_stats.append({
+            'room': room,
+            'count': count
+        })
+    room_stats.sort(key=lambda x: x['count'], reverse=True)
+    
+    # Активные пользователи (топ-10)
+    from sqlalchemy import func
+    active_users = db.session.query(
+        User.id,
+        User.first_name,
+        User.last_name,
+        func.count(ChatMessage.id).label('message_count')
+    ).join(ChatMessage, ChatMessage.user_id == User.id)\
+     .group_by(User.id)\
+     .order_by(func.count(ChatMessage.id).desc())\
+     .limit(10).all()
+    
+    return render_template('admin/chat_stats.html',
+                         total_rooms=total_rooms,
+                         total_messages=total_messages,
+                         daily_stats=daily_stats,
+                         room_stats=room_stats,
+                         active_users=active_users)

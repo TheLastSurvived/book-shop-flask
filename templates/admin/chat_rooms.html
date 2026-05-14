@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Управление комнатами чата | Админка{% endblock %}
+
+{% block content %}
+<div style="height: 70px;"></div>
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 mb-4">
+            {% include "admin/sidebar.html" %}
+        </div>
+        
+        <div class="col-md-9 col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Управление комнатами чата</h1>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoomModal">
+                    <i class="bi bi-plus-circle me-2"></i>Создать комнату
+                </button>
+            </div>
+            
+            <div class="row">
+                {% for room in rooms %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-hash me-1"></i>
+                                <strong>{{ room.name }}</strong>
+                                {% if room.is_private %}
+                                    <span class="badge bg-secondary ms-2">
+                                        <i class="bi bi-lock"></i> Приватная
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <button class="dropdown-item" data-bs-toggle="modal" 
+                                                data-bs-target="#editModal{{ room.id }}">
+                                            <i class="bi bi-pencil me-2"></i>Редактировать
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('admin.chat_messages', room_id=room.id) }}" 
+                                           class="dropdown-item">
+                                            <i class="bi bi-chat-dots me-2"></i>Сообщения
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('admin.clear_chat_room', room_id=room.id) }}" 
+                                           class="dropdown-item text-warning"
+                                           onclick="return confirm('Очистить все сообщения в комнате?')">
+                                            <i class="bi bi-trash me-2"></i>Очистить чат
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a href="{{ url_for('admin.delete_chat_room', room_id=room.id) }}" 
+                                           class="dropdown-item text-danger"
+                                           onclick="return confirm('Удалить комнату и все сообщения?')">
+                                            <i class="bi bi-x-circle me-2"></i>Удалить комнату
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted small">{{ room.description or 'Нет описания' }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <div>
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-envelope me-1"></i>
+                                        {{ room_stats[room.id]['message_count'] if room_stats[room.id] else 0 }} сообщений
+                                    </span>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('chat_room', slug=room.slug) }}" 
+                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                        <i class="bi bi-box-arrow-up-right"></i> Перейти
+                                    </a>
+                                </div>
+                            </div>
+                            {% if room_stats[room.id] and room_stats[room.id]['last_message'] %}
+                            <hr>
+                            <div class="small text-muted">
+                                <i class="bi bi-clock"></i>
+                                Последнее сообщение: 
+                                {{ room_stats[room.id]['last_message'].created_at.strftime('%d.%m.%Y %H:%M') }}
+                                <br>
+                                от: {{ room_stats[room.id]['last_message'].user.first_name }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer text-muted small">
+                            <i class="bi bi-calendar"></i>
+                            Создана: {{ room.created_at.strftime('%d.%m.%Y') }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Модальное окно редактирования -->
+                <div class="modal fade" id="editModal{{ room.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="{{ url_for('admin.edit_chat_room', room_id=room.id) }}" method="post">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Редактировать комнату</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Название *</label>
+                                        <input type="text" name="name" class="form-control" 
+                                               value="{{ room.name }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Slug *</label>
+                                        <input type="text" name="slug" class="form-control" 
+                                               value="{{ room.slug }}" required>
+                                        <small class="text-muted">Уникальный идентификатор (только латиница, дефисы)</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Описание</label>
+                                        <textarea name="description" class="form-control" rows="2">{{ room.description }}</textarea>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" name="is_private" class="form-check-input" 
+                                               id="is_private{{ room.id }}" {% if room.is_private %}checked{% endif %}>
+                                        <label class="form-check-label" for="is_private{{ room.id }}">
+                                            Приватная комната (только для админов)
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if not rooms %}
+            <div class="text-center py-5">
+                <i class="bi bi-chat-dots" style="font-size: 3rem; color: #ccc;"></i>
+                <p class="mt-3 text-muted">Нет комнат чата</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания комнаты -->
+<div class="modal fade" id="addRoomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin.add_chat_room') }}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создать комнату чата</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Название *</label>
+                        <input type="text" name="name" class="form-control" required 
+                               placeholder="Например: Общий чат">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Slug *</label>
+                        <input type="text" name="slug" class="form-control" required 
+                               placeholder="Например: general">
+                        <small class="text-muted">Уникальный идентификатор (только латиница, дефисы)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea name="description" class="form-control" rows="2" 
+                                  placeholder="Краткое описание комнаты"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="is_private" class="form-check-input" id="is_private">
+                        <label class="form-check-label" for="is_private">
+                            Приватная комната (только для админов)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Создать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
