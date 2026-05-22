@@ -2432,3 +2432,16 @@ footer {
 .books-grid .book-card {
     height: 100%;
 }
+
+
+@media (max-width: 992px) {
+    .books-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .row.g-3 > [class*="col-"],
+    .row.g-4 > [class*="col-"] {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
