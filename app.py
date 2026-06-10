@@ -622,7 +622,35 @@ def chat_api():
     
     return jsonify(result)
 
-
+# Повтор заказа
+@app.route('/order/repeat/<int:order_id>')
+def repeat_order(order_id):
+    if 'user_id' not in session:
+        flash('Войдите, чтобы повторить заказ', 'warning')
+        return redirect(url_for('login', next=url_for('profile')))
+    
+    order = Order.query.get_or_404(order_id)
+    
+    # Проверяем, что заказ принадлежит пользователю
+    if order.user_id != session['user_id']:
+        flash('Доступ запрещен', 'danger')
+        return redirect(url_for('profile'))
+    
+    # Очищаем текущую корзину
+    session.pop('cart', None)
+    
+    # Создаем новую корзину на основе заказа
+    cart = {}
+    for item in order.items:
+        # Проверяем, есть ли книга в наличии
+        if item.book.stock > 0:
+            cart[str(item.book.id)] = {'quantity': item.quantity}
+    
+    session['cart'] = cart
+    session.modified = True
+    
+    flash(f'Товары из заказа #{order.order_number} добавлены в корзину', 'success')
+    return redirect(url_for('cart'))
 
 
 @app.route('/chat/users/search')

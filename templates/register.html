@@ -13,11 +13,11 @@
                         <p class="text-muted">Заполните форму для регистрации</p>
                     </div>
                     <div class="auth-body">
-                        <form method="post" action="{{ url_for('register') }}" class="auth-form">
+                        <form method="post" action="{{ url_for('register') }}" class="auth-form" id="registerForm" onsubmit="return validateRegisterForm()">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="firstName" class="form-label">Имя</label>
+                                        <label for="firstName" class="form-label">Имя *</label>
                                         <div class="input-group">
                                             <span class="input-group-text"><i class="bi bi-person"></i></span>
                                             <input type="text" class="form-control" id="firstName" name="first_name" 
@@ -27,7 +27,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="lastName" class="form-label">Фамилия</label>
+                                        <label for="lastName" class="form-label">Фамилия *</label>
                                         <div class="input-group">
                                             <span class="input-group-text"><i class="bi bi-person"></i></span>
                                             <input type="text" class="form-control" id="lastName" name="last_name" 
@@ -38,18 +38,31 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="regEmail" class="form-label">Email адрес</label>
+                                <label for="regEmail" class="form-label">Email адрес *</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-envelope"></i></span>
                                     <input type="email" class="form-control" id="regEmail" name="email" 
-                                           placeholder="Введите ваш email" required>
+                                           placeholder="example@mail.com" required
+                                           pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$">
                                 </div>
+                                <div class="invalid-feedback">Введите корректный email</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="phone" class="form-label">Телефон</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-phone"></i></span>
+                                    <input type="tel" class="form-control" id="phone" name="phone" 
+                                           placeholder="+375 (29) 123-45-67">
+                                </div>
+                                <small class="text-muted">Формат: +375 (29) 123-45-67</small>
+                                <div class="invalid-feedback">Введите номер в формате +375XXXXXXXXX</div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="regPassword" class="form-label">Пароль</label>
+                                        <label for="regPassword" class="form-label">Пароль *</label>
                                         <div class="input-group">
                                             <span class="input-group-text"><i class="bi bi-lock"></i></span>
                                             <input type="password" class="form-control" id="regPassword" name="password" 
@@ -60,7 +73,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="confirmPassword" class="form-label">Подтвердите пароль</label>
+                                        <label for="confirmPassword" class="form-label">Подтвердите пароль *</label>
                                         <div class="input-group">
                                             <span class="input-group-text"><i class="bi bi-lock"></i></span>
                                             <input type="password" class="form-control" id="confirmPassword" name="confirm_password" 
@@ -96,4 +109,91 @@
         </div>
     </div>
 </div>
+
+<script>
+function validateBelarusPhone(phone) {
+    if (!phone) return true; // Телефон необязателен при регистрации
+    
+    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    const phonePattern = /^\+375(29|33|44|25|17|15|16)\d{7}$/;
+    const localPattern = /^8(029|033|044|025|017|015|016)\d{7}$/;
+    const noPlusPattern = /^375(29|33|44|25|17|15|16)\d{7}$/;
+    
+    return phonePattern.test(cleanPhone) || 
+           localPattern.test(cleanPhone) || 
+           noPlusPattern.test(cleanPhone);
+}
+
+function normalizePhone(phone) {
+    if (!phone) return phone;
+    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    
+    if (cleanPhone.startsWith('8')) {
+        cleanPhone = '+375' + cleanPhone.substring(1);
+    } else if (cleanPhone.startsWith('375') && !cleanPhone.startsWith('+')) {
+        cleanPhone = '+' + cleanPhone;
+    }
+    
+    return cleanPhone;
+}
+
+function validateEmail(email) {
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailPattern.test(email);
+}
+
+function validateRegisterForm() {
+    let isValid = true;
+    
+    // Валидация email
+    const emailInput = document.getElementById('regEmail');
+    if (!validateEmail(emailInput.value)) {
+        emailInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        emailInput.classList.remove('is-invalid');
+    }
+    
+    // Валидация телефона (если заполнен)
+    const phoneInput = document.getElementById('phone');
+    if (phoneInput.value && !validateBelarusPhone(phoneInput.value)) {
+        phoneInput.classList.add('is-invalid');
+        isValid = false;
+    } else if (phoneInput.value) {
+        phoneInput.classList.remove('is-invalid');
+        phoneInput.value = normalizePhone(phoneInput.value);
+    }
+    
+    // Валидация пароля
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (password.length < 6) {
+        document.getElementById('regPassword').classList.add('is-invalid');
+        isValid = false;
+    } else {
+        document.getElementById('regPassword').classList.remove('is-invalid');
+    }
+    
+    if (password !== confirmPassword) {
+        document.getElementById('confirmPassword').classList.add('is-invalid');
+        isValid = false;
+    } else {
+        document.getElementById('confirmPassword').classList.remove('is-invalid');
+    }
+    
+    if (!isValid) {
+        alert('Пожалуйста, исправьте ошибки в форме:\n- Введите корректный email\n- Пароль должен быть не менее 6 символов\n- Пароли должны совпадать\n- Телефон в формате +375XXXXXXXXX (если указан)');
+    }
+    
+    return isValid;
+}
+
+// Убираем красную рамку при вводе
+document.querySelectorAll('#regEmail, #phone, #regPassword, #confirmPassword').forEach(input => {
+    input.addEventListener('input', function() {
+        this.classList.remove('is-invalid');
+    });
+});
+</script>
 {% endblock %}

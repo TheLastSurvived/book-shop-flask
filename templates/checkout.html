@@ -24,7 +24,7 @@
         <div class="row">
             <div class="col-lg-8">
                 <div class="checkout-form">
-                    <form method="post" action="{{ url_for('checkout') }}">
+                    <form method="post" action="{{ url_for('checkout') }}" id="checkoutForm" onsubmit="return validateForm()">
                         <!-- Контактная информация -->
                         <div class="checkout-block">
                             <h3 class="block-title">
@@ -36,21 +36,28 @@
                                     <label for="firstName" class="form-label">Имя *</label>
                                     <input type="text" class="form-control" id="firstName" name="first_name" 
                                            value="{{ user.first_name if user else '' }}" required>
+                                    <div class="invalid-feedback">Введите имя</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="lastName" class="form-label">Фамилия *</label>
                                     <input type="text" class="form-control" id="lastName" name="last_name" 
                                            value="{{ user.last_name if user else '' }}" required>
+                                    <div class="invalid-feedback">Введите фамилию</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="email" class="form-label">Email *</label>
                                     <input type="email" class="form-control" id="email" name="email" 
-                                           value="{{ user.email if user else '' }}" required>
+                                           value="{{ user.email if user else '' }}" required
+                                           pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$">
+                                    <div class="invalid-feedback">Введите корректный email (например, name@example.com)</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="phone" class="form-label">Телефон *</label>
                                     <input type="tel" class="form-control" id="phone" name="phone" 
-                                           value="{{ user.phone if user else '' }}" placeholder="+375 (29) XXX-XX-XX" required>
+                                           value="{{ user.phone if user else '' }}" 
+                                           placeholder="+375 (29) 123-45-67" required>
+                                    <div class="invalid-feedback">Введите номер телефона в формате +375 (XX) XXX-XX-XX</div>
+                                    <small class="text-muted">Формат: +375 (29) 123-45-67 или +375291234567</small>
                                 </div>
                             </div>
                         </div>
@@ -62,9 +69,58 @@
                                 Адрес доставки
                             </h3>
                             <div class="mb-3">
-                                <label for="address" class="form-label">Адрес *</label>
+                                <label for="city" class="form-label">Город *</label>
+                                <input type="text" class="form-control" id="city" name="city" 
+                                       list="cities-list" placeholder="Выберите или введите город" required>
+                                <datalist id="cities-list">
+                                    <option value="Минск">
+                                    <option value="Гродно">
+                                    <option value="Брест">
+                                    <option value="Витебск">
+                                    <option value="Могилёв">
+                                    <option value="Гомель">
+                                    <option value="Бобруйск">
+                                    <option value="Барановичи">
+                                    <option value="Борисов">
+                                    <option value="Пинск">
+                                    <option value="Орша">
+                                    <option value="Мозырь">
+                                    <option value="Солигорск">
+                                    <option value="Новополоцк">
+                                    <option value="Лида">
+                                    <option value="Молодечно">
+                                    <option value="Полоцк">
+                                    <option value="Жлобин">
+                                    <option value="Светлогорск">
+                                    <option value="Речица">
+                                    <option value="Жодино">
+                                    <option value="Слуцк">
+                                    <option value="Кобрин">
+                                    <option value="Волковыск">
+                                    <option value="Калинковичи">
+                                    <option value="Рогачёв">
+                                    <option value="Осиповичи">
+                                    <option value="Горки">
+                                    <option value="Новогрудок">
+                                    <option value="Воложин">
+                                    <option value="Дзержинск">
+                                    <option value="Ивацевичи">
+                                    <option value="Лунинец">
+                                    <option value="Микашевичи">
+                                </datalist>
+                                <div class="invalid-feedback">Выберите или введите город</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="address" class="form-label">Улица, дом, квартира *</label>
                                 <textarea class="form-control" id="address" name="address" rows="3" 
-                                          placeholder="Город, улица, дом, квартира" required></textarea>
+                                          placeholder="ул. Примерная, д. 10, кв. 5" required></textarea>
+                                <div class="invalid-feedback">Введите адрес доставки</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="postal_code" class="form-label">Почтовый индекс</label>
+                                <input type="text" class="form-control" id="postal_code" name="postal_code" 
+                                       placeholder="220000" pattern="[0-9]{6}">
+                                <div class="invalid-feedback">Индекс должен содержать 6 цифр</div>
                             </div>
                             <div class="mb-3">
                                 <label for="comment" class="form-label">Комментарий к заказу</label>
@@ -171,4 +227,184 @@
         </div>
     </div>
 </section>
+
+<script>
+// Валидация белорусского номера телефона
+function validateBelarusPhone(phone) {
+    // Удаляем все пробелы и дефисы
+    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    
+    // Проверяем формат +375XXXXXXXXX (12 цифр с + или 13 цифр)
+    const phonePattern = /^\+375(29|33|44|25|17|15|16)\d{7}$/;
+    // Также проверяем формат 8XXXXXXXXXX (для местных звонков)
+    const localPattern = /^8(029|033|044|025|017|015|016)\d{7}$/;
+    // Проверяем формат без +, но с кодом страны 375
+    const noPlusPattern = /^375(29|33|44|25|17|15|16)\d{7}$/;
+    
+    return phonePattern.test(cleanPhone) || 
+           localPattern.test(cleanPhone) || 
+           noPlusPattern.test(cleanPhone);
+}
+
+// Нормализация номера телефона к формату +375XXXXXXXXX
+function normalizePhone(phone) {
+    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    
+    // Если начинается с 8, заменяем на +375
+    if (cleanPhone.startsWith('8')) {
+        cleanPhone = '+375' + cleanPhone.substring(1);
+    }
+    // Если начинается с 375 (без +), добавляем +
+    else if (cleanPhone.startsWith('375') && !cleanPhone.startsWith('+')) {
+        cleanPhone = '+' + cleanPhone;
+    }
+    
+    return cleanPhone;
+}
+
+// Валидация email
+function validateEmail(email) {
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailPattern.test(email);
+}
+
+// Валидация города (должен быть из списка или не пустой)
+function validateCity(city) {
+    const belarusCities = [
+        'Минск', 'Гродно', 'Брест', 'Витебск', 'Могилёв', 'Гомель',
+        'Бобруйск', 'Барановичи', 'Борисов', 'Пинск', 'Орша', 'Мозырь',
+        'Солигорск', 'Новополоцк', 'Лида', 'Молодечно', 'Полоцк', 'Жлобин',
+        'Светлогорск', 'Речица', 'Жодино', 'Слуцк', 'Кобрин', 'Волковыск'
+    ];
+    
+    // Проверяем, что город не пустой
+    if (!city || city.trim() === '') return false;
+    
+    return true;
+}
+
+// Основная функция валидации формы
+function validateForm() {
+    let isValid = true;
+    
+    // Валидация телефона
+    const phoneInput = document.getElementById('phone');
+    const phone = phoneInput.value;
+    
+    if (!validateBelarusPhone(phone)) {
+        phoneInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        phoneInput.classList.remove('is-invalid');
+        // Нормализуем номер телефона
+        phoneInput.value = normalizePhone(phone);
+    }
+    
+    // Валидация email
+    const emailInput = document.getElementById('email');
+    if (!validateEmail(emailInput.value)) {
+        emailInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        emailInput.classList.remove('is-invalid');
+    }
+    
+    // Валидация города
+    const cityInput = document.getElementById('city');
+    if (!validateCity(cityInput.value)) {
+        cityInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        cityInput.classList.remove('is-invalid');
+    }
+    
+    // Валидация адреса
+    const addressInput = document.getElementById('address');
+    if (!addressInput.value.trim()) {
+        addressInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        addressInput.classList.remove('is-invalid');
+    }
+    
+    // Валидация индекса (если заполнен)
+    const postalInput = document.getElementById('postal_code');
+    if (postalInput.value && !/^\d{6}$/.test(postalInput.value)) {
+        postalInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        postalInput.classList.remove('is-invalid');
+    }
+    
+    if (!isValid) {
+        alert('Пожалуйста, исправьте ошибки в форме:\n- Телефон должен быть в формате +375XXXXXXXXX\n- Email должен быть корректным\n- Заполните город и адрес');
+    }
+    
+    return isValid;
+}
+
+// Маска для ввода телефона
+document.addEventListener('DOMContentLoaded', function() {
+    const phoneInput = document.getElementById('phone');
+    
+    phoneInput.addEventListener('input', function(e) {
+        let value = this.value;
+        
+        // Удаляем все нецифровые символы
+        let numbers = value.replace(/\D/g, '');
+        
+        // Форматируем для удобства
+        if (numbers.startsWith('375')) {
+            if (numbers.length > 3) {
+                let formatted = '+' + numbers.substring(0, 3);
+                if (numbers.length > 5) {
+                    formatted += ' (' + numbers.substring(3, 5);
+                    if (numbers.length > 7) {
+                        formatted += ') ' + numbers.substring(5, 8);
+                        if (numbers.length > 10) {
+                            formatted += '-' + numbers.substring(8, 10);
+                            if (numbers.length > 12) {
+                                formatted += '-' + numbers.substring(10, 12);
+                            }
+                        }
+                    }
+                }
+                this.value = formatted;
+            } else if (numbers.length === 3) {
+                this.value = '+' + numbers;
+            } else {
+                this.value = '+' + numbers;
+            }
+        } else if (numbers.startsWith('8')) {
+            if (numbers.length > 1) {
+                let formatted = numbers.substring(0, 1);
+                if (numbers.length > 3) {
+                    formatted += ' (' + numbers.substring(1, 4);
+                    if (numbers.length > 6) {
+                        formatted += ') ' + numbers.substring(4, 7);
+                        if (numbers.length > 9) {
+                            formatted += '-' + numbers.substring(7, 9);
+                            if (numbers.length > 11) {
+                                formatted += '-' + numbers.substring(9, 11);
+                            }
+                        }
+                    }
+                }
+                this.value = formatted;
+            }
+        }
+    });
+    
+    // Убираем красную рамку при начале ввода
+    const inputs = ['phone', 'email', 'city', 'address', 'postal_code'];
+    inputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+            });
+        }
+    });
+});
+</script>
 {% endblock %}

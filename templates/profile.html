@@ -104,7 +104,9 @@
                                 
                                 <div class="order-footer">
                                     <span class="order-total">Итого: {{ order.total }} руб.</span>
-                                    <button class="btn btn-sm btn-outline-primary">Повторить заказ</button>
+                                    <a href="{{ url_for('repeat_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
+    Повторить заказ
+</a>
                                 </div>
                             </div>
                             {% endfor %}
