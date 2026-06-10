@@ -270,16 +270,8 @@ function validateEmail(email) {
 
 // Валидация города (должен быть из списка или не пустой)
 function validateCity(city) {
-    const belarusCities = [
-        'Минск', 'Гродно', 'Брест', 'Витебск', 'Могилёв', 'Гомель',
-        'Бобруйск', 'Барановичи', 'Борисов', 'Пинск', 'Орша', 'Мозырь',
-        'Солигорск', 'Новополоцк', 'Лида', 'Молодечно', 'Полоцк', 'Жлобин',
-        'Светлогорск', 'Речица', 'Жодино', 'Слуцк', 'Кобрин', 'Волковыск'
-    ];
-    
     // Проверяем, что город не пустой
     if (!city || city.trim() === '') return false;
-    
     return true;
 }
 
@@ -296,7 +288,7 @@ function validateForm() {
         isValid = false;
     } else {
         phoneInput.classList.remove('is-invalid');
-        // Нормализуем номер телефона
+        // Нормализуем номер телефона при отправке
         phoneInput.value = normalizePhone(phone);
     }
     
@@ -343,56 +335,129 @@ function validateForm() {
     return isValid;
 }
 
-// Маска для ввода телефона
+// Простая маска для ввода телефона (без конфликтов с курсором)
 document.addEventListener('DOMContentLoaded', function() {
     const phoneInput = document.getElementById('phone');
+    let lastValue = '';
     
     phoneInput.addEventListener('input', function(e) {
         let value = this.value;
         
-        // Удаляем все нецифровые символы
-        let numbers = value.replace(/\D/g, '');
+        // Сохраняем позицию курсора
+        let cursorPos = this.selectionStart;
         
-        // Форматируем для удобства
-        if (numbers.startsWith('375')) {
-            if (numbers.length > 3) {
-                let formatted = '+' + numbers.substring(0, 3);
-                if (numbers.length > 5) {
-                    formatted += ' (' + numbers.substring(3, 5);
-                    if (numbers.length > 7) {
-                        formatted += ') ' + numbers.substring(5, 8);
-                        if (numbers.length > 10) {
-                            formatted += '-' + numbers.substring(8, 10);
-                            if (numbers.length > 12) {
-                                formatted += '-' + numbers.substring(10, 12);
+        // Удаляем все нецифровые символы, кроме +
+        let numbers = value.replace(/[^\d+]/g, '');
+        
+        // Если начинается не с + и не с цифры, очищаем
+        if (numbers.length > 0 && numbers[0] !== '+' && !/^\d/.test(numbers)) {
+            numbers = '';
+        }
+        
+        let formatted = '';
+        
+        if (numbers.startsWith('+')) {
+            // Формат с +
+            let digits = numbers.substring(1).replace(/\D/g, '');
+            if (digits.length > 0) {
+                formatted = '+';
+                // Код страны 375
+                if (digits.length >= 3) {
+                    formatted += digits.substring(0, 3);
+                    if (digits.length > 3) {
+                        formatted += ' (' + digits.substring(3, 5);
+                        if (digits.length > 5) {
+                            formatted += ') ' + digits.substring(5, 8);
+                            if (digits.length > 8) {
+                                formatted += '-' + digits.substring(8, 10);
+                                if (digits.length > 10) {
+                                    formatted += '-' + digits.substring(10, 12);
+                                }
                             }
                         }
                     }
+                } else {
+                    formatted += digits;
                 }
-                this.value = formatted;
-            } else if (numbers.length === 3) {
-                this.value = '+' + numbers;
             } else {
-                this.value = '+' + numbers;
+                formatted = '+';
             }
         } else if (numbers.startsWith('8')) {
-            if (numbers.length > 1) {
-                let formatted = numbers.substring(0, 1);
-                if (numbers.length > 3) {
-                    formatted += ' (' + numbers.substring(1, 4);
-                    if (numbers.length > 6) {
-                        formatted += ') ' + numbers.substring(4, 7);
-                        if (numbers.length > 9) {
-                            formatted += '-' + numbers.substring(7, 9);
-                            if (numbers.length > 11) {
-                                formatted += '-' + numbers.substring(9, 11);
+            // Формат с 8
+            let digits = numbers;
+            if (digits.length >= 1) {
+                formatted = digits.substring(0, 1);
+                if (digits.length > 1) {
+                    formatted += ' (' + digits.substring(1, 4);
+                    if (digits.length > 4) {
+                        formatted += ') ' + digits.substring(4, 7);
+                        if (digits.length > 7) {
+                            formatted += '-' + digits.substring(7, 9);
+                            if (digits.length > 9) {
+                                formatted += '-' + digits.substring(9, 11);
                             }
                         }
                     }
                 }
-                this.value = formatted;
+            }
+        } else {
+            // Начинаем вводить с цифр - автоматически добавляем +
+            if (numbers.length > 0) {
+                let digits = numbers;
+                formatted = '+';
+                if (digits.length >= 3) {
+                    formatted += digits.substring(0, 3);
+                    if (digits.length > 3) {
+                        formatted += ' (' + digits.substring(3, 5);
+                        if (digits.length > 5) {
+                            formatted += ') ' + digits.substring(5, 8);
+                            if (digits.length > 8) {
+                                formatted += '-' + digits.substring(8, 10);
+                                if (digits.length > 10) {
+                                    formatted += '-' + digits.substring(10, 12);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    formatted += digits;
+                }
             }
         }
+        
+        // Обновляем значение только если оно изменилось
+        if (formatted !== value) {
+            // Вычисляем новую позицию курсора
+            let newCursorPos = cursorPos;
+            if (formatted.length > value.length) {
+                newCursorPos = cursorPos + (formatted.length - value.length);
+            } else if (formatted.length < value.length) {
+                newCursorPos = cursorPos - (value.length - formatted.length);
+            }
+            if (newCursorPos < 0) newCursorPos = 0;
+            
+            this.value = formatted;
+            
+            // Восстанавливаем позицию курсора
+            if (newCursorPos <= this.value.length) {
+                this.setSelectionRange(newCursorPos, newCursorPos);
+            } else {
+                this.setSelectionRange(this.value.length, this.value.length);
+            }
+        }
+        
+        lastValue = this.value;
+    });
+    
+    // Обработка клавиш Backspace и Delete
+    phoneInput.addEventListener('keydown', function(e) {
+        // Позволяем нормально удалять символы
+        setTimeout(() => {
+            let value = this.value;
+            if (value === '+') {
+                this.value = '';
+            }
+        }, 0);
     });
     
     // Убираем красную рамку при начале ввода
