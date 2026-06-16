@@ -22,24 +22,26 @@
         <div class="row align-items-center">
             <div class="col-12">
                 <h1 class="catalog-title mb-2">
-                    {% if request.args.get('section') == 'new' %}
-                        Новинки
-                    {% elif request.args.get('section') == 'bestseller' %}
-                        Бестселлеры
-                    {% elif request.args.get('section') == 'sale' %}
-                        Акции и скидки
-                    {% elif request.args.getlist('category') %}
-                        {% for cat in categories %}
-                            {% if cat.slug in request.args.getlist('category') %}
-                                {{ cat.name }}{% if not loop.last %}, {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                    {% elif request.args.get('search') %}
-                        Поиск: "{{ request.args.get('search') }}"
-                    {% else %}
-                        Все книги
-                    {% endif %}
-                </h1>
+    {% if request.args.get('section') == 'new' %}
+        Новинки
+    {% elif request.args.get('section') == 'bestseller' %}
+        Бестселлеры
+    {% elif request.args.get('section') == 'sale' %}
+        Акции и скидки
+    {% elif request.args.getlist('category') %}
+        {% set selected_cat_names = [] %}
+        {% for cat in categories %}
+            {% if cat.slug in request.args.getlist('category') %}
+                {% set _ = selected_cat_names.append(cat.name) %}
+            {% endif %}
+        {% endfor %}
+        {{ selected_cat_names|join(', ') }}
+    {% elif request.args.get('search') %}
+        Поиск: "{{ request.args.get('search') }}"
+    {% else %}
+        Все книги
+    {% endif %}
+</h1>
                 <p class="catalog-subtitle text-muted mb-0">
                     {% if books %}
                         Найдено {{ pagination.total }} книг
